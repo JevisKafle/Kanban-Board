@@ -4,6 +4,8 @@ import { move } from "@dnd-kit/helpers";
 import { useBoardQuery } from "#/features/board/queries";
 import type { Card, Column } from "#/lib/board-types";
 import { KanbanColumn } from "./KanbanColumn";
+import { apiFetch } from "#/lib/api-client";
+
 
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error } = useBoardQuery(boardId);
@@ -21,6 +23,18 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       )
     );
   }, [board]);
+
+  async function handleAddCard(columnId: number, title: string) {
+    const newCard = await apiFetch<Card>("/cards/", {
+      method: "POST",
+      body: JSON.stringify({ column: columnId, title }),
+    });
+
+    setCardsByColumn((prev) => ({
+      ...prev,
+      [columnId]: [...(prev[columnId] ?? []), newCard],
+    }));
+  }
 
   if (isLoading) return <div className="p-6">Loading...</div>;
 
@@ -52,6 +66,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
               id={meta.id}
               title={meta.title}
               cards={cardsByColumn[meta.id] ?? []}
+              onAddCard={handleAddCard}
             />
           ))}
         </div>
