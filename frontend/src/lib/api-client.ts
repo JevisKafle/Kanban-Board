@@ -1,5 +1,14 @@
 const API_BASE = "http://localhost:8000/api";
 
+function getCsrfToken(): string {
+  return (
+    document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("csrftoken="))
+      ?.split("=")[1] ?? ""
+  );
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -9,6 +18,7 @@ export async function apiFetch<T>(
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken(),
       ...options.headers,
     },
   });

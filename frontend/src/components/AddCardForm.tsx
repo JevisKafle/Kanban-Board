@@ -11,9 +11,10 @@ export function AddCardForm({
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        const trimmed = title.trim()
-        onSubmit(trimmed)
-        setTitle("")
+        const trimmed = title.trim();
+        if (!trimmed) return;
+        onSubmit(trimmed);
+        setTitle("");
     }
 
     return (

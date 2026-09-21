@@ -14,6 +14,7 @@ class CardSerializer(serializers.ModelSerializer):
             "owner",
             "updated_at",
         ]
+        read_only_fields = ["id", "position", "updated_at"]
 
 
 class ColumnSerializer(serializers.ModelSerializer):

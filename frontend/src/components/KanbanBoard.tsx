@@ -25,15 +25,20 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   }, [board]);
 
   async function handleAddCard(columnId: number, title: string) {
-    const newCard = await apiFetch<Card>("/cards/", {
-      method: "POST",
-      body: JSON.stringify({ column: columnId, title }),
-    });
+    try {
+      const newCard = await apiFetch<Card>("/cards/", {
+        method: "POST",
+        body: JSON.stringify({ column: columnId, title }),
+      });
 
-    setCardsByColumn((prev) => ({
-      ...prev,
-      [columnId]: [...(prev[columnId] ?? []), newCard],
-    }));
+      setCardsByColumn((prev) => ({
+        ...prev,
+        [columnId]: [...(prev[columnId] ?? []), newCard],
+      }));
+    } catch (err) {
+      console.error("Failed to create card:", err);
+      alert("Failed to add card. Check the console for details.");
+    }
   }
 
   if (isLoading) return <div className="p-6">Loading...</div>;
