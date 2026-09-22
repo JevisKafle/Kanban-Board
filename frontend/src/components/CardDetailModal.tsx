@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Card } from "#/lib/board-types";
-import { apiFetch } from "#/lib/api-client";
+import { useCreateCard, useUpdateCard } from "#/features/board/queries";
 
 export function CardDetailModal({
   card,
@@ -16,7 +16,9 @@ export function CardDetailModal({
   const isCreate = card === null;
   const [title, setTitle] = useState(card?.title ?? "");
   const [description, setDescription] = useState(card?.description ?? "");
-  const [saving, setSaving] = useState(false);
+  const createCard = useCreateCard();
+  const updateCard = useUpdateCard();
+  const saving = createCard.isPending || updateCard.isPending;
 
   useEffect(() => {
     setTitle(card?.title ?? "");
@@ -27,24 +29,17 @@ export function CardDetailModal({
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    setSaving(true);
-
     try {
       const saved = isCreate
-        ? await apiFetch<Card>("/cards/", {
-            method: "POST",
-            body: JSON.stringify({
-              column: columnId,
-              title: trimmedTitle,
-              description: description.trim(),
-            }),
+        ? await createCard.mutateAsync({
+            column: columnId,
+            title: trimmedTitle,
+            description: description.trim(),
           })
-        : await apiFetch<Card>(`/cards/${card.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              title: trimmedTitle,
-              description: description.trim(),
-            }),
+        : await updateCard.mutateAsync({
+            id: card.id,
+            title: trimmedTitle,
+            description: description.trim(),
           });
 
       onSaved(saved);
@@ -52,8 +47,6 @@ export function CardDetailModal({
     } catch (err) {
       console.error(isCreate ? "Failed to create card:" : "Failed to update card:", err);
       alert("Failed to save. Check the console for details.");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -67,7 +60,7 @@ export function CardDetailModal({
         onKeyDown={(e) => {
           if (e.key === "Escape") onClose();
         }}
-        className="w-full max-w-[30rem] rounded-md border border-[#DEDCD4] bg-white p-6 shadow-[0_12px_32px_rgba(28,31,38,0.16)]"
+        className="w-full max-w-120 rounded-md border border-[#DEDCD4] bg-white p-6 shadow-[0_12px_32px_rgba(28,31,38,0.16)]"
       >
         <div className="mb-4 flex items-start justify-between">
           <input
