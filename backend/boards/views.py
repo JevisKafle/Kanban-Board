@@ -47,7 +47,7 @@ class CardViewSet(viewsets.ModelViewSet):
         position = (last + 1.0) if last is not None else 1.0
         card = serializer.save(position=position)
         broadcast_to_board(
-            card.column.board_id, "card_created", {"card": CardSerializer(card).data}
+            card.column.board_id, "card.created", {"card": CardSerializer(card).data}
         )
 
 
