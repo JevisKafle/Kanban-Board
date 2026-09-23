@@ -18,6 +18,11 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-2xl font-semibold">Page Not Found</h1>
+    </div>
+  ),
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
