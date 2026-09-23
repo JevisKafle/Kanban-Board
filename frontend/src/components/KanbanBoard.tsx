@@ -29,15 +29,20 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   function handleCardSaved(saved: Card) {
     setCardsByColumn((prev) => {
-      const columnCards = prev[saved.column] ?? [];
-      const exists = columnCards.some((c) => c.id === saved.id);
+      const next = { ...prev };
 
-      return {
-        ...prev,
-        [saved.column]: exists
-          ? columnCards.map((c) => (c.id === saved.id ? saved : c))
-          : [...columnCards, saved],
-      };
+      for (const columnId of Object.keys(next)) {
+        next[Number(columnId)] = next[Number(columnId)].filter(
+          (card) => card.id !== saved.id
+        );
+      }
+
+      next[saved.column] = [
+        ...(next[saved.column] ?? []),
+        saved,
+      ];
+
+      return next;
     });
   }
 
