@@ -22,7 +22,8 @@ class ColumnSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Column
-        fields = ["id", "board", "title", "position", "cards","is_done_column"]
+        fields = ["id", "board", "title", "position", "cards", "is_done_column"]
+        read_only_fields = ["id", "position"]
 
 
 class BoardSerializer(serializers.ModelSerializer):
