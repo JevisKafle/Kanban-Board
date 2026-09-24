@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "#/lib/api-client";
-import type { Board, Card } from "#/lib/board-types";
+import { type Column, type Board, type Card } from "#/lib/board-types";
 
 export function useBoardQuery(boardId: string | number) {
   return useQuery({
@@ -40,5 +40,56 @@ export function useDeleteCard() {
   return useMutation({
     mutationFn: (id: number) =>
       apiFetch<void>(`/cards/${id}/`, { method: "DELETE" }),
+  });
+}
+
+export function useMoveCard(boardId: string | number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      cardId: number;
+      column: number;
+      before_id: number | null;
+      after_id: number | null;
+    }) =>
+      apiFetch<Card>(`/cards/${payload.cardId}/`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          column: payload.column,
+          before_id: payload.before_id,
+          after_id: payload.after_id,
+        }),
+      }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["board", boardId] });
+    },
+  });
+}
+
+//column
+export function useCreateColumn() {
+  return useMutation({
+    mutationFn: (payload: { board: number; title: string }) =>
+      apiFetch<Column>("/columns/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  });
+}
+
+export function useRenameColumn() {
+  return useMutation({
+    mutationFn: (payload: { id: number; title: string }) =>
+      apiFetch<Column>(`/columns/${payload.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: payload.title }),
+      }),
+  });
+}
+
+export function useDeleteColumn() {
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/columns/${id}/`, { method: "DELETE" }),
   });
 }

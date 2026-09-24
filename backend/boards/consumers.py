@@ -38,10 +38,11 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def board_echo(self, event):
         await self.send(text_data=json.dumps(event["message"]))
 
-
     async def card_created(self, event):
         await self.send(text_data=json.dumps(event))
 
     card_updated = card_created
     card_deleted = card_created
     column_created = card_created
+    column_updated = card_created
+    column_deleted = card_created
