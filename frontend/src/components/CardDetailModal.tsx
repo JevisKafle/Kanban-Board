@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import type { Card } from "#/lib/board-types";
-import { useCreateCard, useUpdateCard } from "#/features/board/queries";
+import { useCreateCard, useUpdateCard, useDeleteCard } from "#/features/board/queries";
 
 export function CardDetailModal({
   card,
   columnId,
   onClose,
   onSaved,
+  onDeleted
 }: {
   card: Card | null;
   columnId: number;
   onClose: () => void;
   onSaved: (card: Card) => void;
+  onDeleted: (cardId: number) => void;
 }) {
   const isCreate = card === null;
   const [title, setTitle] = useState(card?.title ?? "");
@@ -19,6 +21,8 @@ export function CardDetailModal({
   const createCard = useCreateCard();
   const updateCard = useUpdateCard();
   const saving = createCard.isPending || updateCard.isPending;
+
+  const deleteCard = useDeleteCard();
 
   useEffect(() => {
     setTitle(card?.title ?? "");
@@ -32,21 +36,33 @@ export function CardDetailModal({
     try {
       const saved = isCreate
         ? await createCard.mutateAsync({
-            column: columnId,
-            title: trimmedTitle,
-            description: description.trim(),
-          })
+          column: columnId,
+          title: trimmedTitle,
+          description: description.trim(),
+        })
         : await updateCard.mutateAsync({
-            id: card.id,
-            title: trimmedTitle,
-            description: description.trim(),
-          });
+          id: card.id,
+          title: trimmedTitle,
+          description: description.trim(),
+        });
 
       onSaved(saved);
       onClose();
     } catch (err) {
       console.error(isCreate ? "Failed to create card:" : "Failed to update card:", err);
       alert("Failed to save. Check the console for details.");
+    }
+  }
+
+  async function handleDelete() {
+    if (!card || !confirm("Delete this card?")) return;
+    try {
+      await deleteCard.mutateAsync(card.id);
+      onDeleted(card.id);
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete card:", err);
+      alert("Failed to delete. Check the console for details.");
     }
   }
 
@@ -91,6 +107,16 @@ export function CardDetailModal({
           rows={6}
           className="w-full resize-y rounded-[3px] border border-[#DEDCD4] px-2.75 py-2.5 text-[13px] text-[#1C1F26] outline-none"
         />
+        {!isCreate && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteCard.isPending}
+            className="mr-auto cursor-pointer border-0 bg-transparent px-2.5 py-1.5 text-[12px] font-normal text-[#C0392B]"
+          >
+            Delete
+          </button>
+        )}
 
         <div className="mt-4 flex justify-end gap-2">
           <button
@@ -105,9 +131,8 @@ export function CardDetailModal({
             type="button"
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className={`rounded-[3px] border-0 bg-[#1C1F26] px-3.5 py-1.5 text-[12px] font-medium text-white ${
-              saving || !title.trim() ? "cursor-default opacity-60" : "cursor-pointer"
-            }`}
+            className={`rounded-[3px] border-0 bg-[#1C1F26] px-3.5 py-1.5 text-[12px] font-medium text-white ${saving || !title.trim() ? "cursor-default opacity-60" : "cursor-pointer"
+              }`}
           >
             {saving ? "Saving..." : isCreate ? "Add card" : "Save"}
           </button>

@@ -25,11 +25,7 @@ export function useCreateCard() {
 
 export function useUpdateCard() {
   return useMutation({
-    mutationFn: (payload: {
-      id: number;
-      title: string;
-      description: string;
-    }) =>
+    mutationFn: (payload: { id: number; title: string; description: string }) =>
       apiFetch<Card>(`/cards/${payload.id}/`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -37,5 +33,12 @@ export function useUpdateCard() {
           description: payload.description,
         }),
       }),
+  });
+}
+
+export function useDeleteCard() {
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/cards/${id}/`, { method: "DELETE" }),
   });
 }

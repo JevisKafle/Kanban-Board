@@ -7,7 +7,6 @@ import { KanbanColumn } from "./KanbanColumn";
 import { CardDetailModal } from "./CardDetailModal";
 
 
-
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error } = useBoardQuery(boardId);
 
@@ -39,6 +38,16 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           next[Number(key)] = next[Number(key)].filter((c) => c.id !== saved.id);
         }
         next[saved.column] = [...(next[saved.column] ?? []), saved];
+      }
+      return next;
+    });
+  }
+
+  function handleCardDeleted(cardId: number) {
+    setCardsByColumn((prev) => {
+      const next: Record<number, Card[]> = {};
+      for (const [key, cards] of Object.entries(prev)) {
+        next[Number(key)] = cards.filter((c) => c.id !== cardId);
       }
       return next;
     });
@@ -94,6 +103,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
               setAddingToColumnId(null);
             }}
             onSaved={handleCardSaved}
+            onDeleted={handleCardDeleted}
           />
         )}
       </div>
