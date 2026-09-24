@@ -22,8 +22,8 @@ export function KanbanColumn({
   onRenamed: (column: Column) => void;
   onDeleted: (id: number) => void;
 }) {
-  const { ref } = useDroppable({
-    id,
+  const { ref, isDropTarget } = useDroppable({
+    id: `col-${id}`,
     collisionPriority: CollisionPriority.Low,
   });
 
@@ -59,7 +59,11 @@ export function KanbanColumn({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
+    <div
+      ref={ref}
+      className={`flex min-w-0 flex-1 flex-col rounded-md p-1.5 transition-colors duration-150 ${isDropTarget ? "bg-[#ECEAE3]" : "bg-transparent"
+        }`}
+    >
       <div className="mb-3 flex items-center justify-between border-b border-[#DEDCD4] pb-2.5">
         {editing ? (
           <input
@@ -100,7 +104,7 @@ export function KanbanColumn({
         </div>
       </div>
 
-      <div ref={ref} className="flex min-h-5 flex-1 flex-col gap-2">
+      <div className="flex min-h-24 flex-1 flex-col gap-2">
         {cards.map((card, index) => (
           <KanbanCard
             key={card.id}

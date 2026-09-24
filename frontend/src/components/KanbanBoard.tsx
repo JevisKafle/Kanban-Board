@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
-import { move } from "@dnd-kit/helpers";
 import {
   useBoardQuery,
   useCreateColumn,
@@ -102,6 +101,50 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       alert("Failed to add column.");
     }
   }
+  function parseId(id: unknown) {
+    const [kind, num] = String(id).split("-");
+    return { kind, id: Number(num) };
+  }
+
+  function handleDragOver(event: any) {
+    const { source, target } = event.operation;
+    if (!source || !target) return;
+    const s = parseId(source.id);
+    const t = parseId(target.id);
+    if (s.kind !== "card") return;
+
+    setCardsByColumn((prev) => {
+      const from = findCard(prev, s.id);
+      if (!from) return prev;
+
+      let toCol: number;
+      let toIndex: number;
+      if (t.kind === "col") {
+        // Dropped on a column itself (empty area or empty column): append.
+        toCol = t.id;
+        if (from.columnId === toCol) return prev;
+        toIndex = (prev[toCol] ?? []).length;
+      } else {
+        const to = findCard(prev, t.id);
+        if (!to) return prev;
+        toCol = to.columnId;
+        toIndex = to.index;
+        if (from.columnId === toCol && from.index === toIndex) return prev;
+      }
+
+      const card = prev[from.columnId][from.index];
+      const without = prev[from.columnId].filter((c) => c.id !== s.id);
+
+      if (from.columnId === toCol) {
+        const arr = [...without];
+        arr.splice(toIndex, 0, card);
+        return { ...prev, [toCol]: arr };
+      }
+      const dest = [...(prev[toCol] ?? [])];
+      dest.splice(toIndex, 0, { ...card, column: toCol });
+      return { ...prev, [from.columnId]: without, [toCol]: dest };
+    });
+  }
 
   function handleDragStart() {
     snapshotRef.current = cardsRef.current;
@@ -119,7 +162,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
     const source = event.operation.source;
     if (!source) return;
-    const cardId = Number(source.id);
+    const cardId = parseId(source.id).id;
 
     const to = findCard(cardsRef.current, cardId);
     const from = findCard(snapshot, cardId);
@@ -167,9 +210,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
-      onDragOver={(event) => {
-        setCardsByColumn((items) => move(items, event));
-      }}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="min-h-screen bg-[#F6F5F1] px-7 py-6">

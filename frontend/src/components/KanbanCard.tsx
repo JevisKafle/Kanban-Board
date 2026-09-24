@@ -13,7 +13,7 @@ export function KanbanCard({
     onOpen: (card: Card) => void;
 }) {
     const { ref, isDragging } = useSortable({
-        id: card.id,
+        id: `card-${card.id}`,
         index,
         group: columnId,
     });
@@ -22,12 +22,10 @@ export function KanbanCard({
         <div
             ref={ref}
             onClick={() => onOpen(card)}
-            className={`mb-2 cursor-grab rounded-[3px] border border-[#DEDCD4] bg-white px-3 pt-3 pb-2.75 ${isDragging ? "opacity-40" : "opacity-100"
+            className={`cursor-grab rounded-[3px] border border-[#DEDCD4] bg-white px-3 pt-3 pb-2.75 ${isDragging ? "opacity-40" : "opacity-100"
                 }`}
         >
-            <p className="text-[13px] font-medium text-[#1C1F26]">
-                {card.title}
-            </p>
+            <p className="text-[13px] font-medium text-[#1C1F26]">{card.title}</p>
 
             {card.description && (
                 <p className="mt-1.5 line-clamp-2 text-[12px] leading-4 text-[#6B6F76]">
