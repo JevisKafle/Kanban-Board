@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from .models import Board
+from .models import Board, Column
 
 
 class IsBoardMember(permissions.BasePermission):
@@ -9,8 +9,8 @@ class IsBoardMember(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if isinstance(obj, Board):
             board = obj
-        elif hasattr(obj, "board"):
-            board = obj
+        elif isinstance(obj, Column):
+            board = obj.board
         else:
             board = obj.column.board
         return board.memberships.filter(user=request.user).exists()

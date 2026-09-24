@@ -5,6 +5,7 @@ from .serializers import BoardSerializer, ColumnSerializer, CardSerializer
 from .permissions import IsBoardMember
 from .events import broadcast_to_board
 from .positions import compute_position
+from rest_framework.exceptions import ValidationError
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -51,34 +52,42 @@ class CardViewSet(viewsets.ModelViewSet):
         )
 
 
-    def perform_update(self, serializer):
-        before_id = self.request.data.get("before_id")
-        after_id = self.request.data.get("after_id")
+def perform_update(self, serializer):
+    card = serializer.instance
+    data = self.request.data
 
-        if before_id or after_id:
-            before = (
-                Card.objects.filter(id=before_id)
+    target = serializer.validated_data.get("column", card.column)
+    if target.board_id != card.column.board_id:
+        raise ValidationError({"column": "Cannot move a card to another board."})
+
+    if "before_id" in data or "after_id" in data:
+
+        def neighbour_position(key):
+            pk = data.get(key)
+            if pk is None:
+                return None
+            pos = (
+                Card.objects.filter(pk=pk, column=target)
+                .exclude(pk=card.pk)
                 .values_list("position", flat=True)
                 .first()
-                if before_id
-                else None
             )
-            after = (
-                Card.objects.filter(id=after_id)
-                .values_list("position", flat=True)
-                .first()
-                if after_id
-                else None
-            )
-            card = serializer.save(position=compute_position(before, after))
-        else:
-            card = serializer.save()
+            if pos is None:
+                raise ValidationError({key: "Card not in target column."})
+            return pos
 
-        broadcast_to_board(
-            card.column.board_id,
-            "card.updated",
-            {"card": CardSerializer(card).data},
+        position = compute_position(
+            neighbour_position("before_id"), neighbour_position("after_id")
         )
+        card = serializer.save(position=position)
+    else:
+        card = serializer.save()
+
+    broadcast_to_board(
+        card.column.board_id,
+        "card.updated",
+        {"card": CardSerializer(card).data},
+    )
 
     def perform_destroy(self, instance):
         board_id = instance.column.board_id
