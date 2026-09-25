@@ -9,6 +9,7 @@ import type { Card, Column } from "#/lib/board-types";
 import { KanbanColumn } from "./KanbanColumn";
 import { CardDetailModal } from "./CardDetailModal";
 import { useBoardSocket } from "#/features/board/useBoardSocket";
+import { BoardToolbar } from "./BoardToolbar";
 
 function findCard(cols: Record<number, Card[]>, cardId: number) {
   for (const [colId, cards] of Object.entries(cols)) {
@@ -27,7 +28,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const [addingToColumnId, setAddingToColumnId] = useState<number | null>(null);
 
   const createColumn = useCreateColumn();
-  const [newColumnTitle, setNewColumnTitle] = useState<string | null>(null);
+
 
   const moveCard = useMoveCard(boardId);
   const cardsRef = useRef(cardsByColumn);
@@ -90,17 +91,18 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     });
   }
 
-  async function handleAddColumn() {
-    const title = (newColumnTitle ?? "").trim();
-    if (!title || !board) return;
+  async function handleAddColumn(title: string) {
+    if (!board) return false;
     try {
       upsertColumn(await createColumn.mutateAsync({ board: board.id, title }));
-      setNewColumnTitle(null);
+      return true;
     } catch (err) {
       console.error("Failed to add column:", err);
       alert("Failed to add column.");
+      return false;
     }
   }
+
   function parseId(id: unknown) {
     const [kind, num] = String(id).split("-");
     return { kind, id: Number(num) };
@@ -214,7 +216,12 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       onDragEnd={handleDragEnd}
     >
       <div className="min-h-screen bg-[#F6F5F1] px-7 py-6">
-        <h1 className="mb-5 text-[18px] font-bold">{board.title}</h1>
+        <BoardToolbar
+          title={board.title}
+          columnCount={columnMeta.length}
+          cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
+          onAddColumn={handleAddColumn}
+        />
 
         <div className="flex items-start gap-3.5">
           {columnMeta.map((meta) => (
@@ -235,29 +242,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
               }}
             />
           ))}
-          <div className="min-w-0 flex-1">
-            {newColumnTitle === null ? (
-              <button
-                type="button"
-                onClick={() => setNewColumnTitle("")}
-                className="cursor-pointer border-0 bg-transparent text-[12px] text-[#9A9D9F] hover:text-[#6B6F76]"
-              >
-                + Add column
-              </button>
-            ) : (
-              <input
-                autoFocus
-                value={newColumnTitle}
-                onChange={(e) => setNewColumnTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddColumn();
-                  if (e.key === "Escape") setNewColumnTitle(null);
-                }}
-                placeholder="Column title"
-                className="w-full rounded-[3px] border border-[#3D5BFF] bg-white px-2.5 py-2 text-[13px] outline-none"
-              />
-            )}
-          </div>
         </div>
 
         {(openCard || addingToColumnId !== null) && (
