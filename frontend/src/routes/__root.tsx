@@ -4,7 +4,9 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 
+import { fetchCsrf } from '#/features/auth/auth'
 import appCss from '../styles.css?url'
+import { useEffect } from 'react'
 
 const queryClient = new QueryClient()
 
@@ -26,6 +28,9 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    fetchCsrf().catch(() => { })
+  }, [])
   return (
     <html lang="en">
       <head>
