@@ -13,6 +13,7 @@ export function KanbanColumn({
   onOpenCard,
   onRenamed,
   onDeleted,
+  canEdit,
 }: {
   id: number;
   title: string;
@@ -21,6 +22,7 @@ export function KanbanColumn({
   onOpenCard: (card: Card) => void;
   onRenamed: (column: Column) => void;
   onDeleted: (id: number) => void;
+  canEdit: boolean;
 }) {
   const { ref, isDropTarget } = useDroppable({
     id: `col-${id}`,
@@ -82,10 +84,7 @@ export function KanbanColumn({
           />
         ) : (
           <span
-            onDoubleClick={() => {
-              setDraft(title);
-              setEditing(true);
-            }}
+            onDoubleClick={canEdit ? () => { setDraft(title); setEditing(true); } : undefined}
             className="text-[12px] font-semibold uppercase"
           >
             {title}
@@ -94,13 +93,15 @@ export function KanbanColumn({
 
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-[#9A9D9F]">{cards.length}</span>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="cursor-pointer border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-[#C0392B]"
-          >
-            ✕
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="cursor-pointer border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-[#C0392B]"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -112,17 +113,20 @@ export function KanbanColumn({
             index={index}
             columnId={id}
             onOpen={onOpenCard}
+            canEdit={canEdit}
           />
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onAddCard}
-        className="mt-3.5 cursor-pointer border-0 bg-transparent px-0 py-0.5 text-left text-[12px] font-normal text-[#9A9D9F] transition-colors duration-150 hover:text-[#6B6F76]"
-      >
-        + Add card
-      </button>
+      {canEdit && (
+        <button
+          type="button"
+          onClick={onAddCard}
+          className="mt-3.5 cursor-pointer border-0 bg-transparent px-0 py-0.5 text-left text-[12px] font-normal text-[#9A9D9F] transition-colors duration-150 hover:text-[#6B6F76]"
+        >
+          + Add card
+        </button>
+      )}
     </div>
   );
 }

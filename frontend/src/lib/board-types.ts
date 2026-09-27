@@ -22,4 +22,5 @@ export interface Board {
   title: string;
   owner: number;
   columns: Column[];
+  role:string;
 }

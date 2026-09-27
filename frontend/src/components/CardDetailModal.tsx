@@ -7,13 +7,15 @@ export function CardDetailModal({
   columnId,
   onClose,
   onSaved,
-  onDeleted
+  onDeleted,
+  canEdit
 }: {
   card: Card | null;
   columnId: number;
   onClose: () => void;
   onSaved: (card: Card) => void;
   onDeleted: (cardId: number) => void;
+  canEdit: boolean;
 }) {
   const isCreate = card === null;
   const [title, setTitle] = useState(card?.title ?? "");
@@ -82,7 +84,8 @@ export function CardDetailModal({
           <input
             autoFocus
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => canEdit && setTitle(e.target.value)}
+            readOnly={!canEdit}
             placeholder="Card title"
             className="mr-3 w-full border-0 text-[16px] font-semibold text-[#1C1F26] outline-none placeholder:text-[#9A9D9F]"
           />
@@ -102,12 +105,13 @@ export function CardDetailModal({
 
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => canEdit && setDescription(e.target.value)}
+          readOnly={!canEdit}
           placeholder="Add a description..."
           rows={6}
           className="w-full resize-y rounded-[3px] border border-[#DEDCD4] px-2.75 py-2.5 text-[13px] text-[#1C1F26] outline-none"
         />
-        {!isCreate && (
+        {canEdit && !isCreate && (
           <button
             type="button"
             onClick={handleDelete}
@@ -127,15 +131,17 @@ export function CardDetailModal({
             Cancel
           </button>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className={`rounded-[3px] border-0 bg-[#1C1F26] px-3.5 py-1.5 text-[12px] font-medium text-white ${saving || !title.trim() ? "cursor-default opacity-60" : "cursor-pointer"
-              }`}
-          >
-            {saving ? "Saving..." : isCreate ? "Add card" : "Save"}
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !title.trim()}
+              className={`rounded-[3px] border-0 bg-[#1C1F26] px-3.5 py-1.5 text-[12px] font-medium text-white ${saving || !title.trim() ? "cursor-default opacity-60" : "cursor-pointer"
+                }`}
+            >
+              {saving ? "Saving..." : isCreate ? "Add card" : "Save"}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { CardDetailModal } from "./CardDetailModal";
 import { useBoardSocket } from "#/features/board/useBoardSocket";
 import { BoardToolbar } from "./BoardToolbar";
 
+
 function findCard(cols: Record<number, Card[]>, cardId: number) {
   for (const [colId, cards] of Object.entries(cols)) {
     const index = cards.findIndex((c) => c.id === cardId);
@@ -149,12 +150,17 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   }
 
   function handleDragStart() {
+    if (!canEdit) return;
     snapshotRef.current = cardsRef.current;
   }
 
   function handleDragEnd(event: any) {
     const snapshot = snapshotRef.current;
     snapshotRef.current = null;
+    if (!canEdit) {
+      if (snapshot) setCardsByColumn(snapshot);
+      return;
+    }
     if (!snapshot) return;
 
     if (event.canceled) {
@@ -209,6 +215,8 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   if (!board) return null;
 
+  const canEdit = board.role === "owner" || board.role === "editor";
+
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -221,6 +229,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           columnCount={columnMeta.length}
           cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
           onAddColumn={handleAddColumn}
+          canEdit={canEdit}
         />
 
         <div className="flex items-start gap-3.5">
@@ -232,6 +241,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
               cards={cardsByColumn[meta.id] ?? []}
               onRenamed={upsertColumn}
               onDeleted={removeColumn}
+              canEdit={canEdit}
               onAddCard={() => {
                 setOpenCard(null);
                 setAddingToColumnId(meta.id);
@@ -248,6 +258,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           <CardDetailModal
             card={openCard}
             columnId={openCard?.column ?? addingToColumnId!}
+            canEdit={canEdit}
             onClose={() => {
               setOpenCard(null);
               setAddingToColumnId(null);

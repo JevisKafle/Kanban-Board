@@ -1,11 +1,19 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from .models import Board, BoardMembership, Column, Card
-from .serializers import BoardSerializer, ColumnSerializer, CardSerializer
+from .serializers import (
+    BoardSerializer,
+    ColumnSerializer,
+    CardSerializer,
+    AddMemberSerializer,
+    BoardMemberShipSerializer,
+)
 from .permissions import IsBoardMember
 from .events import broadcast_to_board
 from .positions import compute_position
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -20,6 +28,32 @@ class BoardViewSet(viewsets.ModelViewSet):
         BoardMembership.objects.create(
             board=board, user=self.request.user, role="owner"
         )
+
+    @action(detail=True, methods=["get", "post"], url_path="members")
+    def members(self, request, pk=None):
+        board = self.get_object()
+
+        if request.method == "GET":
+            memberships = board.memberships.select_related("user")
+            return Response(BoardMemberShipSerializer(memberships, many=True).data)
+
+        # POST: only the owner can add members
+        requester_membership = board.memberships.filter(user=request.user).first()
+        if not requester_membership or requester_membership.role != "owner":
+            raise PermissionDenied("Only the board owner can add members.")
+
+        serializer = AddMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.get_user()
+
+        membership, created = BoardMembership.objects.update_or_create(
+            board=board,
+            user=user,
+            defaults={"role": serializer.validated_data["role"]},
+        )
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(BoardMemberShipSerializer(membership).data, status=status_code)
+
 
 class ColumnViewSet(viewsets.ModelViewSet):
     serializer_class = ColumnSerializer
@@ -90,7 +124,6 @@ class CardViewSet(viewsets.ModelViewSet):
         if target.board_id != card.column.board_id:
             raise ValidationError({"column": "Cannot move a card to another board."})
 
-        
         if "before_id" in data or "after_id" in data:
 
             def neighbour_position(key):
