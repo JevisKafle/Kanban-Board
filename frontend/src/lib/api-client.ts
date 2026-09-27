@@ -9,6 +9,17 @@ function getCsrfToken(): string {
   );
 }
 
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, body: unknown) {
+    super(`API error ${status}: ${JSON.stringify(body)}`);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -22,9 +33,12 @@ export async function apiFetch<T>(
       ...options.headers,
     },
   });
+
   if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${res.statusText}`);
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body);
   }
+
   if (res.status === 204) return undefined as T;
   return res.json();
 }
