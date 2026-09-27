@@ -6,23 +6,24 @@ export function KanbanCard({
     index,
     columnId,
     onOpen,
-    canEdit
+    canEdit,
 }: {
     card: Card;
     index: number;
     columnId: number;
     onOpen: (card: Card) => void;
     canEdit: boolean;
-    }) {
+}) {
     const { ref, isDragging } = useSortable({
         id: `card-${card.id}`,
         index,
         group: columnId,
+        disabled: !canEdit,
     });
 
     return (
         <div
-            ref={ref}
+            ref={canEdit ? ref : undefined}
             onClick={() => onOpen(card)}
             className={`rounded-[3px] border border-[#DEDCD4] bg-white px-3 pt-3 pb-2.75 ${canEdit ? "cursor-grab" : "cursor-pointer"
                 } ${isDragging ? "opacity-40" : "opacity-100"}`}
