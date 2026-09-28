@@ -29,13 +29,13 @@ class ColumnSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "position"]
 
 
-class BoardSerializer(serializers.ModelSerializer):
-    columns = ColumnSerializer(many=True, read_only=True)
+class BoardListSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
-        fields = ["id", "title", "owner", "role", "columns"]
+        fields = ["id", "title", "owner", "role"]
+        read_only_fields = ["id", "owner"]
 
     def get_role(self, obj):
         request = self.context.get("request")
@@ -43,6 +43,13 @@ class BoardSerializer(serializers.ModelSerializer):
             return None
         membership = obj.memberships.filter(user=request.user).first()
         return membership.role if membership else None
+
+
+class BoardSerializer(BoardListSerializer):
+    columns = ColumnSerializer(many=True, read_only=True)
+
+    class Meta(BoardListSerializer.Meta):
+        fields = ["id", "title", "owner", "role", "columns"]
 
 
 class BoardMemberShipSerializer(serializers.ModelSerializer):
