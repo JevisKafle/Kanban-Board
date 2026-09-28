@@ -1,20 +1,27 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { BoardMembers } from "./BoardMembers";
 
 export function BoardToolbar({
+  boardId,
   title,
   columnCount,
   cardCount,
   onAddColumn,
-  canEdit
+  canEdit,
+  isOwner,
 }: {
+  boardId: string;
   title: string;
   columnCount: number;
   cardCount: number;
   onAddColumn: (title: string) => Promise<boolean>;
   canEdit: boolean;
+  isOwner: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [showMembers, setShowMembers] = useState(false);
 
   async function submit() {
     const next = draft.trim();
@@ -34,9 +41,9 @@ export function BoardToolbar({
         </p>
       </div>
 
-      {canEdit && (
-        <div className="flex items-center gap-2">
-          {adding ? (
+      <div className="flex items-center gap-2">
+        {canEdit &&
+          (adding ? (
             <>
               <input
                 autoFocus
@@ -78,8 +85,30 @@ export function BoardToolbar({
             >
               + Add column
             </button>
-          )}
-        </div>
+          ))}
+
+        <button
+          type="button"
+          onClick={() => setShowMembers(true)}
+          className="cursor-pointer rounded-[3px] border border-[#DEDCD4] bg-white px-3 py-1.5 text-[12px] font-medium text-[#1C1F26] hover:bg-[#ECEAE3]"
+        >
+          Members
+        </button>
+
+        <Link
+          to="/account"
+          className="px-2 py-1.5 text-[12px] text-[#6B6F76] hover:text-[#1C1F26]"
+        >
+          Account
+        </Link>
+      </div>
+
+      {showMembers && (
+        <BoardMembers
+          boardId={boardId}
+          isOwner={isOwner}
+          onClose={() => setShowMembers(false)}
+        />
       )}
     </div>
   );

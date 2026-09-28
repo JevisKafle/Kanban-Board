@@ -22,5 +22,13 @@ export interface Board {
   title: string;
   owner: number;
   columns: Column[];
-  role:string;
+  role: string;
+}
+
+export interface Membership {
+  id: number;
+  board: number;
+  user: number;
+  username: string;
+  role: "owner" | "editor" | "viewer";
 }

@@ -12,6 +12,7 @@ import { useBoardSocket } from "#/features/board/useBoardSocket";
 import { BoardToolbar } from "./BoardToolbar";
 
 
+
 function findCard(cols: Record<number, Card[]>, cardId: number) {
   for (const [colId, cards] of Object.entries(cols)) {
     const index = cards.findIndex((c) => c.id === cardId);
@@ -225,11 +226,13 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     >
       <div className="min-h-screen bg-[#F6F5F1] px-7 py-6">
         <BoardToolbar
+          boardId={boardId}
           title={board.title}
           columnCount={columnMeta.length}
           cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
           onAddColumn={handleAddColumn}
           canEdit={canEdit}
+          isOwner={board.role === "owner"}
         />
 
         <div className="flex items-start gap-3.5">
@@ -268,6 +271,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           />
         )}
       </div>
+
     </DragDropProvider>
   );
 }

@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "#/lib/api-client";
-import { type Column, type Board, type Card } from "#/lib/board-types";
+import {
+  type Column,
+  type Board,
+  type Card,
+  type Membership,
+} from "#/lib/board-types";
 
 export function useBoardQuery(boardId: string | number) {
   return useQuery({
@@ -91,5 +96,28 @@ export function useDeleteColumn() {
   return useMutation({
     mutationFn: (id: number) =>
       apiFetch<void>(`/columns/${id}/`, { method: "DELETE" }),
+  });
+}
+
+//memberships
+export function useBoardMembers(boardId: string | number) {
+  return useQuery({
+    queryKey: ["board", boardId, "members"],
+    queryFn: () => apiFetch<Membership[]>(`/boards/${boardId}/members/`),
+  });
+}
+
+export function useAddMember(boardId: string | number) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { username: string; role: string }) =>
+      apiFetch<Membership>(`/boards/${boardId}/members/`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["board", boardId, "members"] });
+    },
   });
 }
