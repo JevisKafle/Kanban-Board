@@ -22,7 +22,7 @@ export interface Board {
   title: string;
   owner: number;
   columns: Column[];
-  role: string;
+  role: "owner" | "editor" | "viewer";
 }
 
 export interface Membership {
@@ -30,5 +30,12 @@ export interface Membership {
   board: number;
   user: number;
   username: string;
+  role: "owner" | "editor" | "viewer";
+}
+
+export interface BoardSummary {
+  id: number;
+  title: string;
+  owner: number;
   role: "owner" | "editor" | "viewer";
 }

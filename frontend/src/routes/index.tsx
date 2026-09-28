@@ -16,8 +16,7 @@ function HomePage() {
         <div className="flex flex-col items-center gap-2">
           <p className="text-[13px] text-[#6B6F76]">Signed in as {user.username}</p>
           <Link
-            to="/boards/$boardId"
-            params={{ boardId: "1" }}
+            to="/boards"
             className="rounded-[3px] bg-[#1C1F26] px-4 py-2 text-[13px] font-medium text-white"
           >
             Go to board

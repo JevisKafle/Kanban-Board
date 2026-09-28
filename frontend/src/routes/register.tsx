@@ -19,7 +19,7 @@ function RouteComponent() {
         setError(null)
         try {
             await register.mutateAsync({ username, email, password })
-            navigate({ to: '/boards/$boardId', params: { boardId: '1' } })
+            navigate({ to: '/boards' })
         } catch (err) {
             console.error(err)
             setError('Could not register. Check your details and try again.')

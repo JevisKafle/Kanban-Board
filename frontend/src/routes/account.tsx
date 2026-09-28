@@ -32,8 +32,7 @@ function AccountPage() {
 
                 <div className="mt-5 flex flex-col gap-2">
                     <Link
-                        to="/boards/$boardId"
-                        params={{ boardId: "1" }}
+                        to="/boards"
                         className="rounded-[3px] border border-[#DEDCD4] bg-white px-3.5 py-2 text-center text-[13px] font-medium"
                     >
                         Back to board

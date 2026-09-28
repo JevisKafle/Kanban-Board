@@ -18,7 +18,7 @@ function RouteComponent() {
     setError(null)
     try {
       await login.mutateAsync({ username, password })
-      navigate({ to: '/boards/$boardId', params: { boardId: "1" } })
+      navigate({ to: '/boards' })
     } catch {
       setError("Invalid username or password")
     }

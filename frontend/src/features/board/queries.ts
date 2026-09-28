@@ -5,6 +5,7 @@ import {
   type Board,
   type Card,
   type Membership,
+  type BoardSummary,
 } from "#/lib/board-types";
 
 export function useBoardQuery(boardId: string | number) {
@@ -119,5 +120,25 @@ export function useAddMember(boardId: string | number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["board", boardId, "members"] });
     },
+  });
+}
+
+//board
+export function useBoardsQuery() {
+  return useQuery({
+    queryKey: ["boards"],
+    queryFn: () => apiFetch<BoardSummary[]>("/boards/"),
+  });
+}
+
+export function useCreateBoard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { title: string }) =>
+      apiFetch<Board>("/boards/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
 }

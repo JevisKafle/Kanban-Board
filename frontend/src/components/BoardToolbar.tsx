@@ -35,7 +35,11 @@ export function BoardToolbar({
   return (
     <div className="mb-5 flex items-center justify-between border-b border-[#DEDCD4] pb-4">
       <div>
+        <Link to="/boards" className="text-[12px] text-[#6B6F76] hover:text-[#1C1F26]">
+          ← Boards
+        </Link>
         <h1 className="text-[18px] font-bold leading-tight">{title}</h1>
+
         <p className="mt-0.5 text-[12px] text-[#6B6F76]">
           {columnCount} columns · {cardCount} cards
         </p>

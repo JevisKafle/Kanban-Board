@@ -14,3 +14,8 @@ class IsBoardMember(permissions.BasePermission):
         else:
             board = obj.column.board
         return board.memberships.filter(user=request.user).exists()
+
+
+class IsBoardOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.owner_id == request.user.id

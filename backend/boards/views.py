@@ -3,12 +3,13 @@ from rest_framework import viewsets, permissions, status
 from .models import Board, BoardMembership, Column, Card
 from .serializers import (
     BoardSerializer,
+    BoardListSerializer,
     ColumnSerializer,
     CardSerializer,
-    AddMemberSerializer,
     BoardMemberShipSerializer,
+    AddMemberSerializer,
 )
-from .permissions import IsBoardMember
+from .permissions import IsBoardMember, IsBoardOwner
 from .events import broadcast_to_board
 from .positions import compute_position
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -17,16 +18,30 @@ from rest_framework.response import Response
 
 
 class BoardViewSet(viewsets.ModelViewSet):
-    serializer_class = BoardSerializer
-    permission_classes = [IsBoardMember]
+    def get_serializer_class(self):
+        return BoardListSerializer if self.action == "list" else BoardSerializer
+
+    def get_permissions(self):
+        # Renaming or deleting a board is owner-only; other actions need membership.
+        if self.action in ("update", "partial_update", "destroy"):
+            return [IsBoardMember(), IsBoardOwner()]
+        return [IsBoardMember()]
 
     def get_queryset(self):
-        return Board.objects.filter(memberships__user=self.request.user)
+        return Board.objects.filter(memberships__user=self.request.user).order_by("-id")
 
     def perform_create(self, serializer):
         board = serializer.save(owner=self.request.user)
         BoardMembership.objects.create(
             board=board, user=self.request.user, role="owner"
+        )
+        # Start every board with usable columns instead of an empty screen.
+        Column.objects.bulk_create(
+            [
+                Column(board=board, title="To do", position=1.0),
+                Column(board=board, title="In progress", position=2.0),
+                Column(board=board, title="Done", position=3.0, is_done_column=True),
+            ]
         )
 
     @action(detail=True, methods=["get", "post"], url_path="members")
