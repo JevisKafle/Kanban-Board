@@ -93,10 +93,40 @@ class ColumnViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        column = serializer.instance
+        data = self.request.data
+
         new_board = serializer.validated_data.get("board")
-        if new_board and new_board.id != serializer.instance.board_id:
+        if new_board and new_board.id != column.board_id:
             raise ValidationError({"board": "Cannot move a column to another board."})
-        column = serializer.save()
+
+        if "before_id" in data or "after_id" in data:
+
+            def neighbour_position(key):
+                raw = data.get(key)
+                if raw is None:
+                    return None
+                try:
+                    pk = int(raw)
+                except (TypeError, ValueError):
+                    raise ValidationError({key: "Must be a column id."})
+                pos = (
+                    Column.objects.filter(pk=pk, board_id=column.board_id)
+                    .exclude(pk=column.pk)
+                    .values_list("position", flat=True)
+                    .first()
+                )
+                if pos is None:
+                    raise ValidationError({key: "Column not in this board."})
+                return pos
+
+            position = compute_position(
+                neighbour_position("before_id"), neighbour_position("after_id")
+            )
+            column = serializer.save(position=position)
+        else:
+            column = serializer.save()
+
         broadcast_to_board(
             column.board_id, "column.updated", {"column": ColumnSerializer(column).data}
         )

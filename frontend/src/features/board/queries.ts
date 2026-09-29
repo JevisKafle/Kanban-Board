@@ -100,6 +100,27 @@ export function useDeleteColumn() {
   });
 }
 
+export function useMoveColumn(boardId: string | number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      columnId: number;
+      before_id: number | null;
+      after_id: number | null;
+    }) =>
+      apiFetch<Column>(`/columns/${payload.columnId}/`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          before_id: payload.before_id,
+          after_id: payload.after_id,
+        }),
+      }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["board", boardId] });
+    },
+  });
+}
+
 //memberships
 export function useBoardMembers(boardId: string | number) {
   return useQuery({

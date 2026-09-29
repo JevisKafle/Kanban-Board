@@ -18,6 +18,8 @@ export function KanbanCard({
         id: `card-${card.id}`,
         index,
         group: columnId,
+        type: "card",
+        accept: "card",
         disabled: !canEdit,
     });
 

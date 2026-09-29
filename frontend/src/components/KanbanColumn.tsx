@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useDroppable } from "@dnd-kit/react";
+import { useSortable } from "@dnd-kit/react/sortable";
 import { CollisionPriority } from "@dnd-kit/abstract";
 import type { Card, Column } from "#/lib/board-types";
 import { useRenameColumn, useDeleteColumn } from "#/features/board/queries";
@@ -7,6 +7,7 @@ import { KanbanCard } from "./KanbanCard";
 
 export function KanbanColumn({
   id,
+  index,
   title,
   cards,
   onAddCard,
@@ -16,6 +17,7 @@ export function KanbanColumn({
   canEdit,
 }: {
   id: number;
+  index: number;
   title: string;
   cards: Card[];
   onAddCard: () => void;
@@ -24,9 +26,13 @@ export function KanbanColumn({
   onDeleted: (id: number) => void;
   canEdit: boolean;
 }) {
-  const { ref, isDropTarget } = useDroppable({
+  const { ref, handleRef, isDropTarget, isDragging } = useSortable({
     id: `col-${id}`,
+    index,
+    type: "column",
+    accept: ["card", "column"],
     collisionPriority: CollisionPriority.Low,
+    disabled: !canEdit,
   });
 
   const [editing, setEditing] = useState(false);
@@ -62,34 +68,54 @@ export function KanbanColumn({
 
   return (
     <div
-      ref={ref}
-      className={`flex min-w-0 flex-1 flex-col rounded-md p-1.5 transition-colors duration-150 ${isDropTarget ? "bg-[#ECEAE3]" : "bg-transparent"
-        }`}
+      ref={canEdit ? ref : undefined}
+      className={`flex min-w-0 flex-1 flex-col rounded-md p-1.5 transition-colors duration-150 ${isDragging ? "opacity-50" : "opacity-100"
+        } ${isDropTarget && !isDragging ? "bg-[#ECEAE3]" : "bg-transparent"}`}
     >
-      <div className="mb-3 flex items-center justify-between border-b border-[#DEDCD4] pb-2.5">
-        {editing ? (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
-              if (e.key === "Escape") {
-                setDraft(title);
-                setEditing(false);
+      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[#DEDCD4] pb-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          {canEdit && (
+            <button
+              ref={handleRef}
+              type="button"
+              aria-label="Drag to reorder column"
+              className="cursor-grab touch-none border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-[#6B6F76]"
+            >
+              ⋮⋮
+            </button>
+          )}
+
+          {editing ? (
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") {
+                  setDraft(title);
+                  setEditing(false);
+                }
+              }}
+              className="w-full text-[12px] font-semibold uppercase outline-none"
+            />
+          ) : (
+            <span
+              onDoubleClick={
+                canEdit
+                  ? () => {
+                    setDraft(title);
+                    setEditing(true);
+                  }
+                  : undefined
               }
-            }}
-            className="w-full text-[12px] font-semibold uppercase outline-none"
-          />
-        ) : (
-          <span
-            onDoubleClick={canEdit ? () => { setDraft(title); setEditing(true); } : undefined}
-            className="text-[12px] font-semibold uppercase"
-          >
-            {title}
-          </span>
-        )}
+              className="truncate text-[12px] font-semibold uppercase"
+            >
+              {title}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-[#9A9D9F]">{cards.length}</span>
@@ -106,11 +132,11 @@ export function KanbanColumn({
       </div>
 
       <div className="flex min-h-24 flex-1 flex-col gap-2">
-        {cards.map((card, index) => (
+        {cards.map((card, cardIndex) => (
           <KanbanCard
             key={card.id}
             card={card}
-            index={index}
+            index={cardIndex}
             columnId={id}
             onOpen={onOpenCard}
             canEdit={canEdit}

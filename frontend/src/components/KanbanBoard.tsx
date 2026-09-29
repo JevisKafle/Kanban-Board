@@ -4,6 +4,7 @@ import {
   useBoardQuery,
   useCreateColumn,
   useMoveCard,
+  useMoveColumn,
 } from "#/features/board/queries";
 import type { Card, Column } from "#/lib/board-types";
 import { KanbanColumn } from "./KanbanColumn";
@@ -11,7 +12,7 @@ import { CardDetailModal } from "./CardDetailModal";
 import { useBoardSocket } from "#/features/board/useBoardSocket";
 import { BoardToolbar } from "./BoardToolbar";
 
-
+type ColumnMeta = Omit<Column, "cards">;
 
 function findCard(cols: Record<number, Card[]>, cardId: number) {
   for (const [colId, cards] of Object.entries(cols)) {
@@ -24,18 +25,26 @@ function findCard(cols: Record<number, Card[]>, cardId: number) {
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error, refetch } = useBoardQuery(boardId);
 
-  const [columnMeta, setColumnMeta] = useState<Omit<Column, "cards">[]>([]);
+  const [columnMeta, setColumnMeta] = useState<ColumnMeta[]>([]);
   const [cardsByColumn, setCardsByColumn] = useState<Record<number, Card[]>>({});
   const [openCard, setOpenCard] = useState<Card | null>(null);
   const [addingToColumnId, setAddingToColumnId] = useState<number | null>(null);
 
   const createColumn = useCreateColumn();
-
-
   const moveCard = useMoveCard(boardId);
+  const moveColumn = useMoveColumn(boardId);
+
+  const canEdit = board?.role === "owner" || board?.role === "editor";
+
   const cardsRef = useRef(cardsByColumn);
   cardsRef.current = cardsByColumn;
+  const columnsRef = useRef(columnMeta);
+  columnsRef.current = columnMeta;
+
+  // Non-null while a drag is in progress. Also blocks the board->state sync
+  // effect below so a mid-drag refetch can't clobber local state.
   const snapshotRef = useRef<Record<number, Card[]> | null>(null);
+  const columnSnapshotRef = useRef<ColumnMeta[] | null>(null);
 
   useEffect(() => {
     if (!board || snapshotRef.current) return;
@@ -75,11 +84,16 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   function upsertColumn(column: Column) {
     const { cards, ...meta } = column;
-    setColumnMeta((prev) =>
-      prev.some((c) => c.id === meta.id)
+    setColumnMeta((prev) => {
+      const next = prev.some((c) => c.id === meta.id)
         ? prev.map((c) => (c.id === meta.id ? meta : c))
-        : [...prev, meta].sort((a, b) => a.position - b.position),
-    );
+        : [...prev, meta];
+      // Re-sort so a reorder made by another user shows up here too. Skip
+      // while dragging: local order is ahead of the server's positions.
+      return snapshotRef.current
+        ? next
+        : next.sort((a, b) => a.position - b.position);
+    });
     setCardsByColumn((prev) =>
       meta.id in prev ? prev : { ...prev, [meta.id]: [] },
     );
@@ -115,6 +129,21 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     if (!source || !target) return;
     const s = parseId(source.id);
     const t = parseId(target.id);
+
+    if (s.kind === "col") {
+      if (t.kind !== "col" || s.id === t.id) return;
+      setColumnMeta((prev) => {
+        const from = prev.findIndex((c) => c.id === s.id);
+        const to = prev.findIndex((c) => c.id === t.id);
+        if (from === -1 || to === -1 || from === to) return prev;
+        const next = [...prev];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        return next;
+      });
+      return;
+    }
+
     if (s.kind !== "card") return;
 
     setCardsByColumn((prev) => {
@@ -153,26 +182,57 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   function handleDragStart() {
     if (!canEdit) return;
     snapshotRef.current = cardsRef.current;
+    columnSnapshotRef.current = columnsRef.current;
   }
 
   function handleDragEnd(event: any) {
     const snapshot = snapshotRef.current;
+    const columnSnapshot = columnSnapshotRef.current;
     snapshotRef.current = null;
+    columnSnapshotRef.current = null;
+
     if (!canEdit) {
       if (snapshot) setCardsByColumn(snapshot);
+      if (columnSnapshot) setColumnMeta(columnSnapshot);
       return;
     }
     if (!snapshot) return;
 
     if (event.canceled) {
       setCardsByColumn(snapshot);
+      if (columnSnapshot) setColumnMeta(columnSnapshot);
       return;
     }
 
     const source = event.operation.source;
     if (!source) return;
-    const cardId = parseId(source.id).id;
+    const src = parseId(source.id);
 
+    if (src.kind === "col") {
+      const order = columnsRef.current;
+      const index = order.findIndex((c) => c.id === src.id);
+      const originalIndex =
+        columnSnapshot?.findIndex((c) => c.id === src.id) ?? -1;
+      if (index === -1 || index === originalIndex) return;
+
+      moveColumn.mutate(
+        {
+          columnId: src.id,
+          before_id: order[index - 1]?.id ?? null,
+          after_id: order[index + 1]?.id ?? null,
+        },
+        {
+          // Pull the server's new position into local state.
+          onSuccess: (saved) => upsertColumn(saved),
+          onError: () => {
+            if (columnSnapshot) setColumnMeta(columnSnapshot);
+          },
+        },
+      );
+      return;
+    }
+
+    const cardId = src.id;
     const to = findCard(cardsRef.current, cardId);
     const from = findCard(snapshot, cardId);
     if (!to || !from) return;
@@ -216,8 +276,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   if (!board) return null;
 
-  const canEdit = board.role === "owner" || board.role === "editor";
-
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -236,10 +294,11 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
         />
 
         <div className="flex items-start gap-3.5">
-          {columnMeta.map((meta) => (
+          {columnMeta.map((meta, index) => (
             <KanbanColumn
               key={meta.id}
               id={meta.id}
+              index={index}
               title={meta.title}
               cards={cardsByColumn[meta.id] ?? []}
               onRenamed={upsertColumn}
@@ -271,7 +330,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           />
         )}
       </div>
-
     </DragDropProvider>
   );
 }
