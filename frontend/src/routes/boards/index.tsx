@@ -1,5 +1,10 @@
 import { fetchMe } from '#/features/auth/auth'
-import { useBoardsQuery, useCreateBoard } from '#/features/board/queries'
+import {
+  useBoardsQuery,
+  useCreateBoard,
+  useDeleteBoard,
+} from '#/features/board/queries'
+import type { BoardSummary } from '#/lib/board-types'
 import { createFileRoute, redirect, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -18,6 +23,7 @@ export const Route = createFileRoute('/boards/')({
 function BoardListPage() {
   const { data: boards, isLoading, error } = useBoardsQuery()
   const createBoard = useCreateBoard()
+  const deleteBoard = useDeleteBoard()
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
@@ -33,6 +39,21 @@ function BoardListPage() {
       navigate({ to: '/boards/$boardId', params: { boardId: String(board.id) } })
     } catch {
       setFormError("Couldn't create the board. Try again.")
+    }
+  }
+
+  async function handleDelete(b: BoardSummary) {
+    if (
+      !confirm(
+        `Delete "${b.title}" and all of its columns and cards? This can't be undone.`,
+      )
+    )
+      return
+    setFormError(null)
+    try {
+      await deleteBoard.mutateAsync(b.id)
+    } catch {
+      setFormError("Couldn't delete the board. Try again.")
     }
   }
 
@@ -74,17 +95,28 @@ function BoardListPage() {
 
         <ul className="grid gap-3 sm:grid-cols-2">
           {boards?.map((b) => (
-            <li key={b.id}>
+            <li key={b.id} className="relative">
               <Link
                 to="/boards/$boardId"
                 params={{ boardId: String(b.id) }}
-                className="block rounded-md border border-[#DEDCD4] bg-white p-4 hover:border-[#3D5BFF]"
+                className="block rounded-md border border-[#DEDCD4] bg-white p-4 pr-16 hover:border-[#3D5BFF]"
               >
                 <p className="text-[14px] font-semibold text-[#1C1F26]">{b.title}</p>
                 <span className="mt-2 inline-block rounded-full bg-[#F6F5F1] px-2 py-0.5 text-[11px] uppercase text-[#6B6F76]">
                   {b.role}
                 </span>
               </Link>
+
+              {b.role === 'owner' && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(b)}
+                  disabled={deleteBoard.isPending}
+                  className="absolute right-3 top-3 cursor-pointer border-0 bg-transparent p-0 text-[11px] text-[#9A9D9F] hover:text-[#C0392B] disabled:cursor-default disabled:opacity-60"
+                >
+                  Delete
+                </button>
+              )}
             </li>
           ))}
         </ul>

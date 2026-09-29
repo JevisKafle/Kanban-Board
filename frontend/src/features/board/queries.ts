@@ -29,6 +29,31 @@ export function useCreateCard() {
   });
 }
 
+export function useRenameBoard(boardId: string | number) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (title: string) =>
+      apiFetch<Board>(`/boards/${boardId}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
+  });
+}
+
+export function useDeleteBoard() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/boards/${id}/`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
+  });
+}
+
 export function useUpdateCard() {
   return useMutation({
     mutationFn: (payload: { id: number; title: string; description: string }) =>

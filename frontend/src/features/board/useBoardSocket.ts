@@ -6,6 +6,8 @@ type Handlers = {
   onDelete: (cardId: number) => void;
   onColumnUpsert: (column: Column) => void;
   onColumnDelete: (columnId: number) => void;
+  onBoardUpdate: (title: string) => void;
+  onBoardDelete: () => void;
   onReconnect: () => void;
 };
 
@@ -42,6 +44,10 @@ export function useBoardSocket(boardId: string | number, handlers: Handlers) {
           ref.current.onColumnUpsert(msg.column);
         } else if (msg.type === "column.deleted") {
           ref.current.onColumnDelete(msg.column_id);
+        } else if (msg.type === "board.updated") {
+          ref.current.onBoardUpdate(msg.title);
+        } else if (msg.type === "board.deleted") {
+          ref.current.onBoardDelete();
         }
       };
 

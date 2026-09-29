@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BoardMembers } from "./BoardMembers";
 
@@ -8,6 +8,9 @@ export function BoardToolbar({
   columnCount,
   cardCount,
   onAddColumn,
+  onRename,
+  onDelete,
+  deleting,
   canEdit,
   isOwner,
 }: {
@@ -16,12 +19,19 @@ export function BoardToolbar({
   columnCount: number;
   cardCount: number;
   onAddColumn: (title: string) => Promise<boolean>;
+  onRename: (title: string) => Promise<boolean>;
+  onDelete: () => void;
+  deleting: boolean;
   canEdit: boolean;
   isOwner: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [showMembers, setShowMembers] = useState(false);
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(title);
+  const titleDoneRef = useRef(false);
 
   async function submit() {
     const next = draft.trim();
@@ -32,13 +42,55 @@ export function BoardToolbar({
     }
   }
 
+  function startEditingTitle() {
+    titleDoneRef.current = false;
+    setTitleDraft(title);
+    setEditingTitle(true);
+  }
+
+  async function commitTitle() {
+    if (titleDoneRef.current) return;
+    titleDoneRef.current = true;
+    const next = titleDraft.trim();
+    setEditingTitle(false);
+    if (!next || next === title) return;
+    await onRename(next);
+  }
+
+  function cancelTitle() {
+    titleDoneRef.current = true;
+    setEditingTitle(false);
+  }
+
   return (
     <div className="mb-5 flex items-center justify-between border-b border-[#DEDCD4] pb-4">
       <div>
         <Link to="/boards" className="text-[12px] text-[#6B6F76] hover:text-[#1C1F26]">
           ← Boards
         </Link>
-        <h1 className="text-[18px] font-bold leading-tight">{title}</h1>
+
+        {editingTitle ? (
+          <input
+            autoFocus
+            value={titleDraft}
+            maxLength={150}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitTitle();
+              if (e.key === "Escape") cancelTitle();
+            }}
+            className="block w-72 max-w-full rounded-[3px] border border-[#3D5BFF] bg-white px-1.5 py-0.5 text-[18px] font-bold leading-tight outline-none"
+          />
+        ) : (
+          <h1
+            onDoubleClick={isOwner ? startEditingTitle : undefined}
+            title={isOwner ? "Double-click to rename" : undefined}
+            className="text-[18px] font-bold leading-tight"
+          >
+            {title}
+          </h1>
+        )}
 
         <p className="mt-0.5 text-[12px] text-[#6B6F76]">
           {columnCount} columns · {cardCount} cards
@@ -98,6 +150,17 @@ export function BoardToolbar({
         >
           Members
         </button>
+
+        {isOwner && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="cursor-pointer border-0 bg-transparent px-2 py-1.5 text-[12px] text-[#C0392B] disabled:cursor-default disabled:opacity-60"
+          >
+            {deleting ? "Deleting..." : "Delete board"}
+          </button>
+        )}
 
         <Link
           to="/account"

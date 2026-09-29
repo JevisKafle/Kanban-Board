@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useBoardQuery,
   useCreateColumn,
   useMoveCard,
   useMoveColumn,
+  useRenameBoard,
+  useDeleteBoard,
 } from "#/features/board/queries";
 import type { Card, Column } from "#/lib/board-types";
 import { KanbanColumn } from "./KanbanColumn";
@@ -24,15 +28,21 @@ function findCard(cols: Record<number, Card[]>, cardId: number) {
 
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error, refetch } = useBoardQuery(boardId);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const [columnMeta, setColumnMeta] = useState<ColumnMeta[]>([]);
   const [cardsByColumn, setCardsByColumn] = useState<Record<number, Card[]>>({});
   const [openCard, setOpenCard] = useState<Card | null>(null);
   const [addingToColumnId, setAddingToColumnId] = useState<number | null>(null);
+  const [titleOverride, setTitleOverride] = useState<string | null>(null);
+  const deletedByMeRef = useRef(false);
 
   const createColumn = useCreateColumn();
   const moveCard = useMoveCard(boardId);
   const moveColumn = useMoveColumn(boardId);
+  const renameBoard = useRenameBoard(boardId);
+  const deleteBoard = useDeleteBoard();
 
   const canEdit = board?.role === "owner" || board?.role === "editor";
 
@@ -54,6 +64,10 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       Object.fromEntries(board.columns.map((col) => [col.id, col.cards])),
     );
   }, [board]);
+
+  useEffect(() => {
+    setTitleOverride(null);
+  }, [board?.title]);
 
   function handleCardSaved(saved: Card) {
     setCardsByColumn((prev) => {
@@ -88,8 +102,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const next = prev.some((c) => c.id === meta.id)
         ? prev.map((c) => (c.id === meta.id ? meta : c))
         : [...prev, meta];
-      // Re-sort so a reorder made by another user shows up here too. Skip
-      // while dragging: local order is ahead of the server's positions.
       return snapshotRef.current
         ? next
         : next.sort((a, b) => a.position - b.position);
@@ -116,6 +128,39 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       console.error("Failed to add column:", err);
       alert("Failed to add column.");
       return false;
+    }
+  }
+
+  async function handleRenameBoard(title: string) {
+    try {
+      const saved = await renameBoard.mutateAsync(title);
+      setTitleOverride(saved.title);
+      return true;
+    } catch (err) {
+      console.error("Failed to rename board:", err);
+      alert("Failed to rename board.");
+      return false;
+    }
+  }
+
+  async function handleDeleteBoard() {
+    if (!board) return;
+    const name = titleOverride ?? board.title;
+    if (
+      !confirm(
+        `Delete "${name}" and all of its columns and cards? This can't be undone.`,
+      )
+    )
+      return;
+
+    deletedByMeRef.current = true;
+    try {
+      await deleteBoard.mutateAsync(board.id);
+      navigate({ to: "/boards" });
+    } catch (err) {
+      deletedByMeRef.current = false;
+      console.error("Failed to delete board:", err);
+      alert("Failed to delete board.");
     }
   }
 
@@ -153,7 +198,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       let toCol: number;
       let toIndex: number;
       if (t.kind === "col") {
-        // Dropped on a column itself (empty area or empty column): append.
         toCol = t.id;
         if (from.columnId === toCol) return prev;
         toIndex = (prev[toCol] ?? []).length;
@@ -265,6 +309,13 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     onDelete: handleCardDeleted,
     onColumnUpsert: upsertColumn,
     onColumnDelete: removeColumn,
+    onBoardUpdate: (title) => setTitleOverride(title),
+    onBoardDelete: () => {
+      if (deletedByMeRef.current) return;
+      alert("This board was deleted by its owner.");
+      qc.invalidateQueries({ queryKey: ["boards"] });
+      navigate({ to: "/boards" });
+    },
     onReconnect: () => refetch(),
   });
 
@@ -285,10 +336,13 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       <div className="min-h-screen bg-[#F6F5F1] px-7 py-6">
         <BoardToolbar
           boardId={boardId}
-          title={board.title}
+          title={titleOverride ?? board.title}
           columnCount={columnMeta.length}
           cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
           onAddColumn={handleAddColumn}
+          onRename={handleRenameBoard}
+          onDelete={handleDeleteBoard}
+          deleting={deleteBoard.isPending}
           canEdit={canEdit}
           isOwner={board.role === "owner"}
         />

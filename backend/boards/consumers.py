@@ -5,6 +5,13 @@ from .models import BoardMembership
 
 
 class BoardConsumer(AsyncWebsocketConsumer):
+    """
+    Receive-only for clients. Writes go through the REST API, whose views call
+    broadcast_to_board(); the handlers below just forward those events. There
+    is deliberately no receive() so a connected client can't push messages to
+    everyone else on the board.
+    """
+
     async def connect(self):
         self.board_id = self.scope["url_route"]["kwargs"]["board_id"]
         self.group_name = f"board_{self.board_id}"
@@ -29,15 +36,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        await self.channel_layer.group_send(
-            self.group_name, {"type": "board_echo", "message": data}
-        )
-
-    async def board_echo(self, event):
-        await self.send(text_data=json.dumps(event["message"]))
-
     async def card_created(self, event):
         await self.send(text_data=json.dumps(event))
 
@@ -46,3 +44,5 @@ class BoardConsumer(AsyncWebsocketConsumer):
     column_created = card_created
     column_updated = card_created
     column_deleted = card_created
+    board_updated = card_created
+    board_deleted = card_created

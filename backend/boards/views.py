@@ -9,7 +9,12 @@ from .serializers import (
     BoardMemberShipSerializer,
     AddMemberSerializer,
 )
-from .permissions import IsBoardMember, IsBoardOwner
+from .permissions import (
+    IsBoardMember,
+    IsBoardEditor,
+    IsBoardOwner,
+    require_editor,
+)
 from .events import broadcast_to_board
 from .positions import compute_position
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -60,6 +65,10 @@ class BoardViewSet(viewsets.ModelViewSet):
         serializer = AddMemberSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.get_user()
+        if user.id == board.owner_id:
+            raise ValidationError(
+                {"username": "You can't change the board owner's role."}
+            )
 
         membership, created = BoardMembership.objects.update_or_create(
             board=board,
@@ -69,18 +78,28 @@ class BoardViewSet(viewsets.ModelViewSet):
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(BoardMemberShipSerializer(membership).data, status=status_code)
 
+    def perform_update(self, serializer):
+        board = serializer.save()
+        broadcast_to_board(
+            board.id, "board.updated", {"board_id": board.id, "title": board.title}
+        )
+
+    def perform_destroy(self, instance):
+        board_id = instance.id
+        instance.delete()
+        broadcast_to_board(board_id, "board.deleted", {"board_id": board_id})
+
 
 class ColumnViewSet(viewsets.ModelViewSet):
     serializer_class = ColumnSerializer
-    permission_classes = [IsBoardMember]
+    permission_classes = [IsBoardMember, IsBoardEditor]
 
     def get_queryset(self):
         return Column.objects.filter(board__memberships__user=self.request.user)
 
     def perform_create(self, serializer):
         board = serializer.validated_data["board"]
-        if not board.memberships.filter(user=self.request.user).exists():
-            raise PermissionDenied("You are not a member of this board.")
+        require_editor(self.request.user, board)
         last = (
             Column.objects.filter(board=board)
             .order_by("position")
@@ -139,15 +158,14 @@ class ColumnViewSet(viewsets.ModelViewSet):
 
 class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
-    permission_classes = [IsBoardMember]
+    permission_classes = [IsBoardMember, IsBoardEditor]
 
     def get_queryset(self):
         return Card.objects.filter(column__board__memberships__user=self.request.user)
 
     def perform_create(self, serializer):
         column = serializer.validated_data["column"]
-        if not column.board.memberships.filter(user=self.request.user).exists():
-            raise PermissionDenied("You are not a member of this board.")
+        require_editor(self.request.user, column.board)
 
         last = (
             Card.objects.filter(column=column)

@@ -17,7 +17,7 @@ class CardSerializer(serializers.ModelSerializer):
             "owner",
             "updated_at",
         ]
-        read_only_fields = ["id", "position", "updated_at"]
+        read_only_fields = ["id", "position", "owner", "updated_at"]
 
 
 class ColumnSerializer(serializers.ModelSerializer):
@@ -63,7 +63,9 @@ class BoardMemberShipSerializer(serializers.ModelSerializer):
 
 class AddMemberSerializer(serializers.Serializer):
     username = serializers.CharField()
-    role = serializers.ChoiceField(choices=BoardMembership.ROLE_CHOICES)
+    role = serializers.ChoiceField(
+        choices=[c for c in BoardMembership.ROLE_CHOICES if c[0] != "owner"]
+    )
 
     def validate_username(self, value):
         user = User.objects.filter(username=value).first()
