@@ -1,4 +1,5 @@
 import json
+import uuid
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import BoardMembership
@@ -13,7 +14,15 @@ class BoardConsumer(AsyncWebsocketConsumer):
     """
 
     async def connect(self):
-        self.board_id = self.scope["url_route"]["kwargs"]["board_id"]
+        self.group_name = None
+        try:
+            board_id = uuid.UUID(self.scope["url_route"]["kwargs"]["board_id"])
+        except ValueError:
+            await self.close()
+            return
+        # str(UUID) is the canonical lowercase form, so the group name always
+        # matches the one broadcast_to_board() builds, whatever case the URL used.
+        self.board_id = str(board_id)
         self.group_name = f"board_{self.board_id}"
         user = self.scope["user"]
 
@@ -34,7 +43,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
         return BoardMembership.objects.filter(board_id=board_id, user=user).exists()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        if self.group_name:
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def card_created(self, event):
         await self.send(text_data=json.dumps(event))

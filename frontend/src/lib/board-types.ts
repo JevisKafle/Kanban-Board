@@ -10,7 +10,7 @@ export interface Card {
 
 export interface Column {
   id: number;
-  board: number;
+  board: string;
   title: string;
   position: number;
   is_done_column: boolean;
@@ -18,7 +18,7 @@ export interface Column {
 }
 
 export interface Board {
-  id: number;
+  id: string;
   title: string;
   owner: number;
   columns: Column[];
@@ -27,14 +27,14 @@ export interface Board {
 
 export interface Membership {
   id: number;
-  board: number;
+  board: string;
   user: number;
   username: string;
   role: "owner" | "editor" | "viewer";
 }
 
 export interface BoardSummary {
-  id: number;
+  id: string;
   title: string;
   owner: number;
   role: "owner" | "editor" | "viewer";
