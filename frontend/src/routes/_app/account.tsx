@@ -1,15 +1,7 @@
-import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
-import { fetchMe } from "#/features/auth/auth"
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useMe, useLogout } from "#/features/auth/useAuth"
 
-export const Route = createFileRoute('/account')({
-    beforeLoad: async () => {
-        try {
-            await fetchMe()
-        } catch {
-            throw redirect({ to: "/login" })
-        }
-    },
+export const Route = createFileRoute('/_app/account')({
     component: AccountPage,
 })
 

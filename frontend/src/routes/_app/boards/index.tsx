@@ -1,22 +1,14 @@
-import { fetchMe } from '#/features/auth/auth'
 import {
   useBoardsQuery,
   useCreateBoard,
   useDeleteBoard,
 } from '#/features/board/queries'
 import type { BoardSummary } from '#/lib/board-types'
-import { createFileRoute, redirect, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 
-export const Route = createFileRoute('/boards/')({
-  beforeLoad: async () => {
-    try {
-      await fetchMe()
-    } catch {
-      throw redirect({ to: '/login' })
-    }
-  },
+export const Route = createFileRoute('/_app/boards/')({
   component: BoardListPage,
 })
 

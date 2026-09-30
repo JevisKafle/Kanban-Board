@@ -10,26 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/_auth'
-import { Route as AccountRouteImport } from './routes/account'
+import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
-import { Route as BoardsIndexRouteImport } from './routes/boards/index'
-import { Route as BoardsBoardIdRouteImport } from './routes/boards/$boardId'
+import { Route as AppBoardsIndexRouteImport } from './routes/_app/boards/index'
+import { Route as AppBoardsBoardIdRouteImport } from './routes/_app/boards/$boardId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AccountRoute = AccountRouteImport.update({
+const AppAccountRoute = AppAccountRouteImport.update({
   id: '/account',
   path: '/account',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
@@ -41,42 +46,43 @@ const AuthRegisterRoute = AuthRegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => AuthRoute,
 } as any)
-const BoardsIndexRoute = BoardsIndexRouteImport.update({
+const AppBoardsIndexRoute = AppBoardsIndexRouteImport.update({
   id: '/boards/',
   path: '/boards/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
+const AppBoardsBoardIdRoute = AppBoardsBoardIdRouteImport.update({
   id: '/boards/$boardId',
   path: '/boards/$boardId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AppAccountRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
-  '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId': typeof AppBoardsBoardIdRoute
+  '/boards/': typeof AppBoardsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
+  '/account': typeof AppAccountRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
-  '/boards': typeof BoardsIndexRoute
+  '/boards/$boardId': typeof AppBoardsBoardIdRoute
+  '/boards': typeof AppBoardsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
-  '/account': typeof AccountRoute
+  '/_app/account': typeof AppAccountRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
-  '/boards/': typeof BoardsIndexRoute
+  '/_app/boards/$boardId': typeof AppBoardsBoardIdRoute
+  '/_app/boards/': typeof AppBoardsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,20 +93,19 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/_auth'
-    | '/account'
+    | '/_app/account'
     | '/_auth/login'
     | '/_auth/register'
-    | '/boards/$boardId'
-    | '/boards/'
+    | '/_app/boards/$boardId'
+    | '/_app/boards/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
-  AccountRoute: typeof AccountRoute
-  BoardsBoardIdRoute: typeof BoardsBoardIdRoute
-  BoardsIndexRoute: typeof BoardsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -112,6 +117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth': {
       id: '/_auth'
       path: ''
@@ -119,12 +131,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account': {
-      id: '/account'
+    '/_app/account': {
+      id: '/_app/account'
       path: '/account'
       fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_auth/login': {
       id: '/_auth/login'
@@ -140,22 +152,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRegisterRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/boards/': {
-      id: '/boards/'
+    '/_app/boards/': {
+      id: '/_app/boards/'
       path: '/boards'
       fullPath: '/boards/'
-      preLoaderRoute: typeof BoardsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppBoardsIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/boards/$boardId': {
-      id: '/boards/$boardId'
+    '/_app/boards/$boardId': {
+      id: '/_app/boards/$boardId'
       path: '/boards/$boardId'
       fullPath: '/boards/$boardId'
-      preLoaderRoute: typeof BoardsBoardIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppBoardsBoardIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
+
+interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
+  AppBoardsBoardIdRoute: typeof AppBoardsBoardIdRoute
+  AppBoardsIndexRoute: typeof AppBoardsIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
+  AppBoardsBoardIdRoute: AppBoardsBoardIdRoute,
+  AppBoardsIndexRoute: AppBoardsIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
@@ -171,10 +197,8 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
-  AccountRoute: AccountRoute,
-  BoardsBoardIdRoute: BoardsBoardIdRoute,
-  BoardsIndexRoute: BoardsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
