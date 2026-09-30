@@ -1,3 +1,4 @@
+import { confirmAction } from '#/components/ConfirmDialog'
 import {
   useBoardsQuery,
   useCreateBoard,
@@ -6,6 +7,7 @@ import {
 import type { BoardSummary } from '#/lib/board-types'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from "sonner"
 
 
 export const Route = createFileRoute('/_app/boards/')({
@@ -35,17 +37,17 @@ function BoardListPage() {
   }
 
   async function handleDelete(b: BoardSummary) {
-    if (
-      !confirm(
-        `Delete "${b.title}" and all of its columns and cards? This can't be undone.`,
-      )
-    )
-      return
-    setFormError(null)
+    const ok = await confirmAction({
+      title: `Delete "${b.title}"?`,
+      message: "All of its columns and cards will be deleted. This can't be undone.",
+      confirmLabel: 'Delete board',
+    })
+    if (!ok) return
     try {
       await deleteBoard.mutateAsync(b.id)
+      toast.success('Board deleted')
     } catch {
-      setFormError("Couldn't delete the board. Try again.")
+      toast.error("Couldn't delete the board.")
     }
   }
 

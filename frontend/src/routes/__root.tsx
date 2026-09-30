@@ -3,6 +3,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { Toaster } from 'sonner'
+import { ConfirmHost } from '#/components/ConfirmDialog'
 
 import { fetchCsrf } from '#/features/auth/auth'
 import appCss from '../styles.css?url'
@@ -39,6 +41,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QueryClientProvider client={queryClient}>
           {children}
+          <Toaster position="bottom-right" richColors />
+          <ConfirmHost />
           <TanStackDevtools
             config={{ position: 'bottom-right' }}
             plugins={[

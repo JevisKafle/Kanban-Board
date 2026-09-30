@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   useBoardQuery,
   useCreateColumn,
@@ -15,6 +16,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { CardDetailModal } from "./CardDetailModal";
 import { useBoardSocket } from "#/features/board/useBoardSocket";
 import { BoardToolbar } from "./BoardToolbar";
+import { confirmAction } from "./ConfirmDialog";
 
 type ColumnMeta = Omit<Column, "cards">;
 
@@ -51,8 +53,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const columnsRef = useRef(columnMeta);
   columnsRef.current = columnMeta;
 
-  // Non-null while a drag is in progress. Also blocks the board->state sync
-  // effect below so a mid-drag refetch can't clobber local state.
   const snapshotRef = useRef<Record<number, Card[]> | null>(null);
   const columnSnapshotRef = useRef<ColumnMeta[] | null>(null);
 
@@ -126,7 +126,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       return true;
     } catch (err) {
       console.error("Failed to add column:", err);
-      alert("Failed to add column.");
+      toast.error("Couldn't add the column.");
       return false;
     }
   }
@@ -135,10 +135,11 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     try {
       const saved = await renameBoard.mutateAsync(title);
       setTitleOverride(saved.title);
+      toast.success("Board renamed");
       return true;
     } catch (err) {
       console.error("Failed to rename board:", err);
-      alert("Failed to rename board.");
+      toast.error("Couldn't rename the board.");
       return false;
     }
   }
@@ -146,21 +147,22 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   async function handleDeleteBoard() {
     if (!board) return;
     const name = titleOverride ?? board.title;
-    if (
-      !confirm(
-        `Delete "${name}" and all of its columns and cards? This can't be undone.`,
-      )
-    )
-      return;
+    const ok = await confirmAction({
+      title: `Delete "${name}"?`,
+      message: "All of its columns and cards will be deleted. This can't be undone.",
+      confirmLabel: "Delete board",
+    });
+    if (!ok) return;
 
     deletedByMeRef.current = true;
     try {
       await deleteBoard.mutateAsync(board.id);
+      toast.success("Board deleted");
       navigate({ to: "/boards" });
     } catch (err) {
       deletedByMeRef.current = false;
       console.error("Failed to delete board:", err);
-      alert("Failed to delete board.");
+      toast.error("Couldn't delete the board.");
     }
   }
 
@@ -176,6 +178,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     const t = parseId(target.id);
 
     if (s.kind === "col") {
+      // Column being dragged: only columns are valid targets.
       if (t.kind !== "col" || s.id === t.id) return;
       setColumnMeta((prev) => {
         const from = prev.findIndex((c) => c.id === s.id);
@@ -270,6 +273,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           onSuccess: (saved) => upsertColumn(saved),
           onError: () => {
             if (columnSnapshot) setColumnMeta(columnSnapshot);
+            toast.error("Couldn't move the column.");
           },
         },
       );
@@ -290,7 +294,12 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
         before_id: to.cards[to.index - 1]?.id ?? null,
         after_id: to.cards[to.index + 1]?.id ?? null,
       },
-      { onError: () => setCardsByColumn(snapshot) },
+      {
+        onError: () => {
+          setCardsByColumn(snapshot);
+          toast.error("Couldn't move the card.");
+        },
+      },
     );
   }
 
@@ -312,7 +321,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     onBoardUpdate: (title) => setTitleOverride(title),
     onBoardDelete: () => {
       if (deletedByMeRef.current) return;
-      alert("This board was deleted by its owner.");
+      toast("This board was deleted by its owner.");
       qc.invalidateQueries({ queryKey: ["boards"] });
       navigate({ to: "/boards" });
     },

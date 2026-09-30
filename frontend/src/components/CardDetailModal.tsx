@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import type { Card } from "#/lib/board-types";
 import { useCreateCard, useUpdateCard, useDeleteCard } from "#/features/board/queries";
+import { confirmAction } from "./ConfirmDialog";
 
 export function CardDetailModal({
   card,
@@ -49,22 +51,30 @@ export function CardDetailModal({
         });
 
       onSaved(saved);
+      toast.success(isCreate ? "Card added" : "Card saved");
       onClose();
     } catch (err) {
       console.error(isCreate ? "Failed to create card:" : "Failed to update card:", err);
-      alert("Failed to save. Check the console for details.");
+      toast.error("Couldn't save the card.");
     }
   }
 
   async function handleDelete() {
-    if (!card || !confirm("Delete this card?")) return;
+    if (!card) return;
+    const ok = await confirmAction({
+      title: "Delete this card?",
+      message: "This can't be undone.",
+      confirmLabel: "Delete card",
+    });
+    if (!ok) return;
     try {
       await deleteCard.mutateAsync(card.id);
       onDeleted(card.id);
+      toast.success("Card deleted");
       onClose();
     } catch (err) {
       console.error("Failed to delete card:", err);
-      alert("Failed to delete. Check the console for details.");
+      toast.error("Couldn't delete the card.");
     }
   }
 

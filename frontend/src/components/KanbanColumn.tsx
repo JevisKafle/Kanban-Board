@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { CollisionPriority } from "@dnd-kit/abstract";
 import type { Card, Column } from "#/lib/board-types";
 import { useRenameColumn, useDeleteColumn } from "#/features/board/queries";
 import { KanbanCard } from "./KanbanCard";
+import { confirmAction } from "./ConfirmDialog";
 
 export function KanbanColumn({
   id,
@@ -52,17 +54,28 @@ export function KanbanColumn({
     } catch (err) {
       console.error("Failed to rename column:", err);
       setDraft(title);
+      toast.error("Couldn't rename the column.");
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${title}" and its ${cards.length} card(s)?`)) return;
+    const ok = await confirmAction({
+      title: `Delete "${title}"?`,
+      message:
+        cards.length > 0
+          ? `Its ${cards.length} card${cards.length === 1 ? "" : "s"} will be deleted too. This can't be undone.`
+          : undefined,
+      confirmLabel: "Delete column",
+    });
+    if (!ok) return;
+
     try {
       await remove.mutateAsync(id);
       onDeleted(id);
+      toast.success("Column deleted");
     } catch (err) {
       console.error("Failed to delete column:", err);
-      alert("Failed to delete column.");
+      toast.error("Couldn't delete the column.");
     }
   }
 
