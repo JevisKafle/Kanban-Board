@@ -57,7 +57,7 @@ class BoardViewSet(viewsets.ModelViewSet):
             memberships = board.memberships.select_related("user")
             return Response(BoardMemberShipSerializer(memberships, many=True).data)
 
-        # POST: only the owner can add members
+        #only the owner can add members
         requester_membership = board.memberships.filter(user=request.user).first()
         if not requester_membership or requester_membership.role != "owner":
             raise PermissionDenied("Only the board owner can add members.")
