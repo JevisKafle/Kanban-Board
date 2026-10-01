@@ -8,6 +8,7 @@ type Handlers = {
   onColumnDelete: (columnId: number) => void;
   onBoardUpdate: (title: string) => void;
   onBoardDelete: () => void;
+  onMemberRemoved: (userId: number, by: number) => void;
   onReconnect: () => void;
 };
 
@@ -48,6 +49,8 @@ export function useBoardSocket(boardId: string | number, handlers: Handlers) {
           ref.current.onBoardUpdate(msg.title);
         } else if (msg.type === "board.deleted") {
           ref.current.onBoardDelete();
+        } else if (msg.type === "member.removed") {
+          ref.current.onMemberRemoved(msg.user_id, msg.by);
         }
       };
 

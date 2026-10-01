@@ -17,6 +17,7 @@ import { CardDetailModal } from "./CardDetailModal";
 import { useBoardSocket } from "#/features/board/useBoardSocket";
 import { BoardToolbar } from "./BoardToolbar";
 import { confirmAction } from "./ConfirmDialog";
+import { useMe } from "#/features/auth/useAuth";
 
 type ColumnMeta = Omit<Column, "cards">;
 
@@ -32,6 +33,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error, refetch } = useBoardQuery(boardId);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: me } = useMe();
 
   const [columnMeta, setColumnMeta] = useState<ColumnMeta[]>([]);
   const [cardsByColumn, setCardsByColumn] = useState<Record<number, Card[]>>({});
@@ -324,6 +326,14 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       toast("This board was deleted by its owner.");
       qc.invalidateQueries({ queryKey: ["boards"] });
       navigate({ to: "/boards" });
+    },
+    onMemberRemoved: (userId, by) => {
+      qc.invalidateQueries({ queryKey: ["board", boardId, "members"] });
+      if (me && userId === me.id && by !== me.id) {
+        toast("You were removed from this board.");
+        qc.invalidateQueries({ queryKey: ["boards"] });
+        navigate({ to: "/boards" });
+      }
     },
     onReconnect: () => refetch(),
   });

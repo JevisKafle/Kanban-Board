@@ -44,12 +44,9 @@ export function useRenameBoard(boardId: string | number) {
 
 export function useDeleteBoard() {
   const qc = useQueryClient();
-
   return useMutation({
-    mutationFn: (id: number) =>
-      apiFetch<void>(`/boards/${id}/`, {
-        method: "DELETE",
-      }),
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/boards/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
 }
@@ -100,7 +97,7 @@ export function useMoveCard(boardId: string | number) {
 //column
 export function useCreateColumn() {
   return useMutation({
-    mutationFn: (payload: { board: number; title: string }) =>
+    mutationFn: (payload: { board: string; title: string }) =>
       apiFetch<Column>("/columns/", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -120,7 +117,7 @@ export function useRenameColumn() {
 
 export function useDeleteColumn() {
   return useMutation({
-    mutationFn: (id: number) =>
+    mutationFn: (id: string) =>
       apiFetch<void>(`/columns/${id}/`, { method: "DELETE" }),
   });
 }
@@ -165,6 +162,20 @@ export function useAddMember(boardId: string | number) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["board", boardId, "members"] });
+    },
+  });
+}
+
+export function useRemoveMember(boardId: string | number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (membershipId: number) =>
+      apiFetch<void>(`/boards/${boardId}/members/${membershipId}/`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["board", boardId, "members"] });
+      qc.invalidateQueries({ queryKey: ["boards"] });
     },
   });
 }

@@ -56,3 +56,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
     column_deleted = card_created
     board_updated = card_created
     board_deleted = card_created
+
+    async def member_removed(self, event):
+        await self.send(text_data=json.dumps(event))
+        if event["user_id"] == self.scope["user"].id:
+            await self.close()

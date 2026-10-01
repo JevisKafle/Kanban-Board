@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import viewsets, permissions, status
 from .models import Board, BoardMembership, Column, Card
 from .serializers import (
@@ -57,7 +57,7 @@ class BoardViewSet(viewsets.ModelViewSet):
             memberships = board.memberships.select_related("user")
             return Response(BoardMemberShipSerializer(memberships, many=True).data)
 
-        #only the owner can add members
+        # only the owner can add members
         requester_membership = board.memberships.filter(user=request.user).first()
         if not requester_membership or requester_membership.role != "owner":
             raise PermissionDenied("Only the board owner can add members.")
@@ -77,6 +77,33 @@ class BoardViewSet(viewsets.ModelViewSet):
         )
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(BoardMemberShipSerializer(membership).data, status=status_code)
+
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"members/(?P<membership_id>\d+)",
+    )
+    def remove_member(self, request, pk=None, membership_id=None):
+        board = self.get_object()
+        target = get_object_or_404(board.memberships.all(), pk=membership_id)
+        is_self = target.user_id == request.user.id
+
+        requester = board.memberships.get(user=request.user)
+        if not is_self and requester.role != "owner":
+            raise PermissionDenied("Only the board owner can remove members.")
+        if target.user_id == board.owner_id:
+            raise ValidationError(
+                "The board owner can't be removed. Delete the board instead."
+            )
+
+        user_id = target.user_id
+        target.delete()
+        broadcast_to_board(
+            board.id,
+            "member.removed",
+            {"board_id": board.id, "user_id": user_id, "by": request.user.id},
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_update(self, serializer):
         board = serializer.save()
