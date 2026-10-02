@@ -38,7 +38,7 @@ function RouteComponent() {
       await login.mutateAsync({ username, password })
       setDone(true)
       await wait(cardLandDelay())
-      navigate({ to: '/boards' })
+      navigate({ to: '/' })
     } catch (err) {
       const info = parseAuthError(err)
       setError(

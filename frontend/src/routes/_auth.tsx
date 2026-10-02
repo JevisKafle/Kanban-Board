@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_auth')({
     } catch {
       return
     }
-    throw redirect({ to: '/boards' })
+    throw redirect({ to: '/' })
   },
   component: AuthLayout,
 })

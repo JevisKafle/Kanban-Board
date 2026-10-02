@@ -48,7 +48,7 @@ function RouteComponent() {
             await register.mutateAsync({ username, email, password })
             setDone(true)
             await wait(cardLandDelay())
-            navigate({ to: '/boards' })
+            navigate({ to: '/' })
         } catch (err) {
             const info = parseAuthError(err, ['username', 'email', 'password'])
             const hasFieldErrors = Object.keys(info.fields).length > 0
