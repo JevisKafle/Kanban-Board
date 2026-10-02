@@ -15,3 +15,35 @@ body {
   margin: 0;
 }
 
+/*
+  Kankan theme. Paste this into your main CSS file (the one that has
+  @import "tailwindcss";), right below that import.
+
+  Tailwind v4 turns each --color-* below into utilities:
+  bg-brand-600, text-ink, border-line, ring-brand-600/20, and so on.
+  To re-theme the whole app later, change the brand scale here and nothing else.
+*/
+@theme {
+  /* Brand: one blue, used for primary actions, links, focus and brand surfaces */
+  --color-brand-50: #eef1ff;
+  --color-brand-100: #dce2ff;
+  --color-brand-200: #b9c4ff;
+  --color-brand-400: #6f85ff;
+  --color-brand-500: #4a63ff;
+  --color-brand-600: #3049f0;
+  --color-brand-700: #2538c4;
+  --color-brand-800: #1e2e9a;
+
+  /* Neutrals */
+  --color-ink: #14172b;
+  --color-muted: #666a78;
+  --color-line: #e3e5ee;
+  --color-field: #8c90a3;
+
+  /* Status */
+  --color-danger: #c0392b;
+
+  /* Small accents (collaborator cursors and similar). Use sparingly. */
+  --color-sun: #ffc24b;
+  --color-mint: #62d9a8;
+}

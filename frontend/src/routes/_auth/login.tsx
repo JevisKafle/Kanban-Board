@@ -1,4 +1,17 @@
 import { useLogin } from '#/features/auth/useAuth'
+import {
+  AuthHeading,
+  AuthShell,
+  Field,
+  FormError,
+  PasswordField,
+  SubmitButton,
+  authLinkClass,
+  cardLandDelay,
+  parseAuthError,
+  wait,
+  type Stage,
+} from '#/features/auth/AuthKit'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -7,54 +20,85 @@ export const Route = createFileRoute('/_auth/login')({
 })
 
 function RouteComponent() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
   const login = useLogin()
   const navigate = useNavigate()
 
+  const busy = login.isPending || done
+  const stage: Stage = done ? 'done' : login.isPending ? 'doing' : 'todo'
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (busy) return
     setError(null)
     try {
       await login.mutateAsync({ username, password })
+      setDone(true)
+      await wait(cardLandDelay())
       navigate({ to: '/boards' })
-    } catch {
-      setError("Invalid username or password")
+    } catch (err) {
+      const info = parseAuthError(err)
+      setError(
+        info.kind === 'client'
+          ? "That username and password don't match. Check them and try again."
+          : info.message,
+      )
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1 className="mb-4 text-[16px] font-semibold">Log in</h1>
-
-      <input
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Username"
-        className="mb-2 w-full rounded-[3px] border border-[#DEDCD4] px-2.75 py-2 text-[13px] outline-none"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-        className="mb-3 w-full rounded-[3px] border border-[#DEDCD4] px-2.75 py-2 text-[13px] outline-none"
-      />
-
-      {error && <p className="mb-3 text-[12px] text-[#C0392B]">{error}</p>}
-
-      <button
-        type="submit"
-        disabled={login.isPending}
-        className="w-full cursor-pointer rounded-[3px] border-0 bg-[#1C1F26] px-3.5 py-2 text-[13px] font-medium text-white disabled:opacity-60"
+    <AuthShell
+      stage={stage}
+      cardLabel="Log in"
+      headline="Plan together, in real time."
+      blurb="Cards move on everyone's screen the moment someone drags them."
+      footer={
+        <>
+          New to Kankan?{' '}
+          <Link to="/register" className={authLinkClass}>
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <form
+        onSubmit={handleSubmit}
+        aria-labelledby="login-title"
+        aria-busy={busy}
       >
-        {login.isPending ? 'Logging in...' : 'Log in'}
-      </button>
+        <AuthHeading
+          id="login-title"
+          title="Log in to Kankan"
+          subtitle="Pick up where your team left off."
+        />
 
-      <p className="mt-3 text-center text-[12px] text-[#6B6F76]">
-        No account? <Link to="/register" className="text-[#3D5BFF]">Register</Link>
-      </p>
-    </form>
+        <Field
+          label="Username"
+          name="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+        />
+        <PasswordField
+          label="Password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
+
+        <FormError message={error} />
+
+        <SubmitButton busy={busy} idleLabel="Log in" busyLabel="Logging in…" />
+      </form>
+    </AuthShell>
   )
 }
