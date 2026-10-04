@@ -117,7 +117,7 @@ export function useRenameColumn() {
 
 export function useDeleteColumn() {
   return useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: (id: number) =>
       apiFetch<void>(`/columns/${id}/`, { method: "DELETE" }),
   });
 }

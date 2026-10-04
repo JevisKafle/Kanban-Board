@@ -29,6 +29,26 @@ function findCard(cols: Record<number, Card[]>, cardId: number) {
   return null;
 }
 
+function BoardSkeleton() {
+  return (
+    <div className="flex h-dvh flex-col bg-surface" aria-busy="true">
+      <div className="px-5 pt-5 sm:px-8">
+        <div className="mb-5 h-9 w-56 animate-pulse rounded-lg bg-line motion-reduce:animate-none" />
+      </div>
+      <div className="flex items-start gap-4 overflow-hidden px-5 sm:px-8">
+        {[3, 2, 1].map((count, i) => (
+          <div key={i} className="w-72 shrink-0 space-y-2.5 rounded-[14px] bg-line/50 p-3">
+            <div className="h-5 w-24 animate-pulse rounded bg-line motion-reduce:animate-none" />
+            {Array.from({ length: count }).map((_, j) => (
+              <div key={j} className="h-20 animate-pulse rounded-lg bg-white motion-reduce:animate-none" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const { data: board, isLoading, error, refetch } = useBoardQuery(boardId);
   const navigate = useNavigate();
@@ -338,10 +358,35 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     onReconnect: () => refetch(),
   });
 
-  if (isLoading) return <div className="p-6">Loading...</div>;
+  if (isLoading) return <BoardSkeleton />;
 
   if (error) {
-    return <div className="p-6">Failed to load board: {String(error)}</div>;
+    return (
+      <div className="grid min-h-dvh place-items-center bg-surface px-5">
+        <div className="w-full max-w-sm rounded-[14px] border border-line bg-white p-6 text-center">
+          <p className="text-[16px] font-semibold text-ink">Couldn't load this board</p>
+          <p className="mt-1.5 text-[14px] text-muted">
+            Check your connection, or the board may have been deleted.
+          </p>
+          <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="cursor-pointer rounded-lg bg-brand-600 px-4 py-2.5 text-[14px] font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-brand-700 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/boards" })}
+              className="cursor-pointer rounded-lg border border-field/60 bg-white px-4 py-2.5 text-[14px] font-semibold text-ink transition-[transform,background-color] duration-150 hover:bg-surface active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              All boards
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!board) return null;
@@ -352,41 +397,46 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="min-h-screen bg-[#F6F5F1] px-7 py-6">
-        <BoardToolbar
-          boardId={boardId}
-          title={titleOverride ?? board.title}
-          columnCount={columnMeta.length}
-          cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
-          onAddColumn={handleAddColumn}
-          onRename={handleRenameBoard}
-          onDelete={handleDeleteBoard}
-          deleting={deleteBoard.isPending}
-          canEdit={canEdit}
-          isOwner={board.role === "owner"}
-        />
+      {/* Toolbar stays put; the columns scroll sideways underneath it. */}
+      <div className="flex h-dvh flex-col bg-surface text-ink">
+        <div className="px-5 pt-5 sm:px-8">
+          <BoardToolbar
+            boardId={boardId}
+            title={titleOverride ?? board.title}
+            columnCount={columnMeta.length}
+            cardCount={Object.values(cardsByColumn).reduce((n, c) => n + c.length, 0)}
+            onAddColumn={handleAddColumn}
+            onRename={handleRenameBoard}
+            onDelete={handleDeleteBoard}
+            deleting={deleteBoard.isPending}
+            canEdit={canEdit}
+            isOwner={board.role === "owner"}
+          />
+        </div>
 
-        <div className="flex items-start gap-3.5">
-          {columnMeta.map((meta, index) => (
-            <KanbanColumn
-              key={meta.id}
-              id={meta.id}
-              index={index}
-              title={meta.title}
-              cards={cardsByColumn[meta.id] ?? []}
-              onRenamed={upsertColumn}
-              onDeleted={removeColumn}
-              canEdit={canEdit}
-              onAddCard={() => {
-                setOpenCard(null);
-                setAddingToColumnId(meta.id);
-              }}
-              onOpenCard={(card) => {
-                setAddingToColumnId(null);
-                setOpenCard(card);
-              }}
-            />
-          ))}
+        <div className="min-h-0 flex-1 overflow-auto px-5 pb-6 sm:px-8">
+          <div className="flex w-max min-w-full items-start gap-4">
+            {columnMeta.map((meta, index) => (
+              <KanbanColumn
+                key={meta.id}
+                id={meta.id}
+                index={index}
+                title={meta.title}
+                cards={cardsByColumn[meta.id] ?? []}
+                onRenamed={upsertColumn}
+                onDeleted={removeColumn}
+                canEdit={canEdit}
+                onAddCard={() => {
+                  setOpenCard(null);
+                  setAddingToColumnId(meta.id);
+                }}
+                onOpenCard={(card) => {
+                  setAddingToColumnId(null);
+                  setOpenCard(card);
+                }}
+              />
+            ))}
+          </div>
         </div>
 
         {(openCard || addingToColumnId !== null) && (

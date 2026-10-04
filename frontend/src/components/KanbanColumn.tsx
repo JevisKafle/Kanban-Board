@@ -136,7 +136,7 @@ export function KanbanColumn({
             <button
               type="button"
               onClick={handleDelete}
-              className="cursor-pointer border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-[#C0392B]"
+              className="cursor-pointer border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-danger"
             >
               ✕
             </button>

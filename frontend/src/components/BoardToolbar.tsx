@@ -1,6 +1,18 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Avatar } from "#/features/auth/Avatar";
+import { useMe } from "#/features/auth/useAuth";
 import { BoardMembers } from "./BoardMembers";
+
+const btnBase =
+  "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold whitespace-nowrap transition-[transform,background-color,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-60";
+const btnOutline = `${btnBase} border border-field/60 bg-white text-ink hover:bg-white/60`;
+const btnPrimary = `${btnBase} bg-brand-600 text-white hover:bg-brand-700`;
+const btnGhost = `${btnBase} text-muted hover:bg-line/60 hover:text-ink`;
+const fieldCls =
+  "rounded-lg border border-brand-600 bg-white text-ink outline-none ring-4 ring-brand-600/15";
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function BoardToolbar({
   boardId,
@@ -25,6 +37,7 @@ export function BoardToolbar({
   canEdit: boolean;
   isOwner: boolean;
 }) {
+  const { data: me } = useMe();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [showMembers, setShowMembers] = useState(false);
@@ -63,10 +76,16 @@ export function BoardToolbar({
   }
 
   return (
-    <div className="mb-5 flex items-center justify-between border-b border-[#DEDCD4] pb-4">
-      <div>
-        <Link to="/boards" className="text-[12px] text-[#6B6F76] hover:text-[#1C1F26]">
-          ← Boards
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line pb-4">
+      <div className="min-w-0">
+        <Link
+          to="/boards"
+          className="mb-1.5 inline-flex items-center gap-1 rounded-md text-[13px] font-medium text-muted transition-colors duration-150 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-600"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8.5 3 4.5 7l4 4" />
+          </svg>
+          Boards
         </Link>
 
         {editingTitle ? (
@@ -80,24 +99,25 @@ export function BoardToolbar({
               if (e.key === "Enter") commitTitle();
               if (e.key === "Escape") cancelTitle();
             }}
-            className="block w-72 max-w-full rounded-[3px] border border-[#3D5BFF] bg-white px-1.5 py-0.5 text-[18px] font-bold leading-tight outline-none"
+            aria-label="Board title"
+            className={`${fieldCls} block w-80 max-w-full px-2 py-0.5 text-[24px] leading-tight font-semibold tracking-[-0.02em]`}
           />
         ) : (
           <h1
             onDoubleClick={isOwner ? startEditingTitle : undefined}
             title={isOwner ? "Double-click to rename" : undefined}
-            className="text-[18px] font-bold leading-tight"
+            className="truncate text-[24px] leading-tight font-semibold tracking-[-0.02em] text-ink"
           >
             {title}
           </h1>
         )}
 
-        <p className="mt-0.5 text-[12px] text-[#6B6F76]">
-          {columnCount} columns · {cardCount} cards
+        <p className="mt-1 text-[13px] text-muted">
+          {plural(columnCount, "column")}, {plural(cardCount, "card")}
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {canEdit &&
           (adding ? (
             <>
@@ -113,13 +133,10 @@ export function BoardToolbar({
                   }
                 }}
                 placeholder="Column title"
-                className="w-48 rounded-[3px] border border-[#3D5BFF] bg-white px-2.5 py-1.5 text-[13px] outline-none"
+                aria-label="Column title"
+                className={`${fieldCls} w-48 px-3 py-2 text-[13px]`}
               />
-              <button
-                type="button"
-                onClick={submit}
-                className="cursor-pointer rounded-[3px] border-0 bg-[#1C1F26] px-3 py-1.5 text-[12px] font-medium text-white"
-              >
+              <button type="button" onClick={submit} className={btnPrimary}>
                 Add
               </button>
               <button
@@ -128,26 +145,21 @@ export function BoardToolbar({
                   setDraft("");
                   setAdding(false);
                 }}
-                className="cursor-pointer border-0 bg-transparent px-1 py-1.5 text-[12px] text-[#6B6F76]"
+                className={btnGhost}
               >
                 Cancel
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="cursor-pointer rounded-[3px] border border-[#DEDCD4] bg-white px-3 py-1.5 text-[12px] font-medium text-[#1C1F26] hover:bg-[#ECEAE3]"
-            >
-              + Add column
+            <button type="button" onClick={() => setAdding(true)} className={btnOutline}>
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 1.5v9M1.5 6h9" />
+              </svg>
+              Add column
             </button>
           ))}
 
-        <button
-          type="button"
-          onClick={() => setShowMembers(true)}
-          className="cursor-pointer rounded-[3px] border border-[#DEDCD4] bg-white px-3 py-1.5 text-[12px] font-medium text-[#1C1F26] hover:bg-[#ECEAE3]"
-        >
+        <button type="button" onClick={() => setShowMembers(true)} className={btnOutline}>
           Members
         </button>
 
@@ -156,17 +168,22 @@ export function BoardToolbar({
             type="button"
             onClick={onDelete}
             disabled={deleting}
-            className="cursor-pointer border-0 bg-transparent px-2 py-1.5 text-[12px] text-[#C0392B] disabled:cursor-default disabled:opacity-60"
+            className={`${btnBase} text-danger hover:bg-danger/10`}
           >
-            {deleting ? "Deleting..." : "Delete board"}
+            {deleting ? "Deleting…" : "Delete board"}
           </button>
         )}
 
         <Link
           to="/account"
-          className="px-2 py-1.5 text-[12px] text-[#6B6F76] hover:text-[#1C1F26]"
+          aria-label="Account"
+          className="ml-1 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         >
-          Account
+          {me ? (
+            <Avatar name={me.username} size="md" />
+          ) : (
+            <span className="block size-9 rounded-full bg-line" />
+          )}
         </Link>
       </div>
 
