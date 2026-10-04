@@ -126,7 +126,7 @@ export function CardDetailModal({
             type="button"
             onClick={handleDelete}
             disabled={deleteCard.isPending}
-            className="mr-auto cursor-pointer border-0 bg-transparent px-2.5 py-1.5 text-[12px] font-normal text-[#C0392B]"
+            className="mr-auto cursor-pointer border-0 bg-transparent px-2.5 py-1.5 text-[12px] font-normal text-danger"
           >
             Delete
           </button>

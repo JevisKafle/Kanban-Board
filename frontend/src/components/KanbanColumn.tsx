@@ -82,19 +82,29 @@ export function KanbanColumn({
   return (
     <div
       ref={canEdit ? ref : undefined}
-      className={`flex min-w-0 flex-1 flex-col rounded-md p-1.5 transition-colors duration-150 ${isDragging ? "opacity-50" : "opacity-100"
-        } ${isDropTarget && !isDragging ? "bg-[#ECEAE3]" : "bg-transparent"}`}
+      className={`flex w-72 shrink-0 flex-col rounded-[14px] p-2 transition-[background-color,box-shadow,opacity] duration-150 ${isDragging ? "opacity-50" : "opacity-100"
+        } ${isDropTarget && !isDragging
+          ? "bg-brand-50 ring-2 ring-brand-200"
+          : "bg-line/50 ring-0 ring-transparent"
+        }`}
     >
-      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[#DEDCD4] pb-2.5">
+      <div className="mb-2 flex items-center justify-between gap-2 px-1.5 py-1">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           {canEdit && (
             <button
               ref={handleRef}
               type="button"
               aria-label="Drag to reorder column"
-              className="cursor-grab touch-none border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-[#6B6F76]"
+              className="-ml-1 grid size-6 shrink-0 cursor-grab touch-none place-items-center rounded-md text-muted/60 transition-colors duration-150 hover:bg-white hover:text-muted focus-visible:outline-2 focus-visible:outline-brand-600"
             >
-              ⋮⋮
+              <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true" fill="currentColor">
+                <circle cx="2.5" cy="2.5" r="1.3" />
+                <circle cx="7.5" cy="2.5" r="1.3" />
+                <circle cx="2.5" cy="7" r="1.3" />
+                <circle cx="7.5" cy="7" r="1.3" />
+                <circle cx="2.5" cy="11.5" r="1.3" />
+                <circle cx="7.5" cy="11.5" r="1.3" />
+              </svg>
             </button>
           )}
 
@@ -111,7 +121,8 @@ export function KanbanColumn({
                   setEditing(false);
                 }
               }}
-              className="w-full text-[12px] font-semibold uppercase outline-none"
+              aria-label="Column title"
+              className="w-full rounded-md border border-brand-600 bg-white px-1.5 py-0.5 text-[14px] font-semibold text-ink ring-4 ring-brand-600/15 outline-none"
             />
           ) : (
             <span
@@ -123,28 +134,34 @@ export function KanbanColumn({
                   }
                   : undefined
               }
-              className="truncate text-[12px] font-semibold uppercase"
+              title={canEdit ? "Double-click to rename" : undefined}
+              className="truncate text-[14px] font-semibold text-ink"
             >
               {title}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[#9A9D9F]">{cards.length}</span>
+        <div className="flex items-center gap-1">
+          <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-muted">
+            {cards.length}
+          </span>
           {canEdit && (
             <button
               type="button"
               onClick={handleDelete}
-              className="cursor-pointer border-0 bg-transparent p-0 text-[12px] leading-none text-[#9A9D9F] hover:text-danger"
+              aria-label={`Delete column ${title}`}
+              className="grid size-6 cursor-pointer place-items-center rounded-md text-muted/60 transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-danger"
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
+              </svg>
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex min-h-24 flex-1 flex-col gap-2">
+      <div className="flex min-h-24 flex-1 flex-col gap-2.5">
         {cards.map((card, cardIndex) => (
           <KanbanCard
             key={card.id}
@@ -161,9 +178,12 @@ export function KanbanColumn({
         <button
           type="button"
           onClick={onAddCard}
-          className="mt-3.5 cursor-pointer border-0 bg-transparent px-0 py-0.5 text-left text-[12px] font-normal text-[#9A9D9F] transition-colors duration-150 hover:text-[#6B6F76]"
+          className="mt-2 flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-white/70 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-600"
         >
-          + Add card
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M6 1.5v9M1.5 6h9" />
+          </svg>
+          Add card
         </button>
       )}
     </div>
