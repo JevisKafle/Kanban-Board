@@ -87,7 +87,7 @@ export function ConfirmHost() {
           <button
             type="button"
             onClick={() => finish(true)}
-            className="cursor-pointer rounded-[3px] border-0 bg-[#C0392B] px-3.5 py-1.5 text-[12px] font-medium text-white"
+            className="cursor-pointer rounded-[3px] border-0 bg-danger px-3.5 py-1.5 text-[12px] font-medium text-white"
           >
             {pending.confirmLabel ?? "Delete"}
           </button>

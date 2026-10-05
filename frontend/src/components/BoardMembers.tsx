@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -7,8 +7,12 @@ import {
     useRemoveMember,
 } from "#/features/board/queries";
 import { useMe } from "#/features/auth/useAuth";
+import { Avatar } from "#/features/auth/Avatar";
 import type { Membership } from "#/lib/board-types";
 import { confirmAction } from "./ConfirmDialog";
+
+const fieldCls =
+    "rounded-lg border border-field bg-white px-3.5 py-3 text-base text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:border-muted focus-visible:border-brand-600 focus-visible:ring-4 focus-visible:ring-brand-600/15 sm:text-[14px]";
 
 export function BoardMembers({
     boardId,
@@ -27,6 +31,15 @@ export function BoardMembers({
     const [username, setUsername] = useState("");
     const [role, setRole] = useState("editor");
     const [error, setError] = useState<string | null>(null);
+
+    // Escape closes the modal wherever focus is.
+    useEffect(() => {
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") onClose();
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
 
     async function handleAdd(e: React.FormEvent) {
         e.preventDefault();
@@ -76,43 +89,55 @@ export function BoardMembers({
     return (
         <div
             onClick={onClose}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,31,38,0.4)] backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[2px] transition-opacity duration-200 ease-out starting:opacity-0"
         >
             <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="members-title"
                 onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.key === "Escape" && onClose()}
-                className="w-full max-w-md rounded-md border border-[#DEDCD4] bg-white p-6 shadow-[0_12px_32px_rgba(28,31,38,0.16)]"
+                className="w-full max-w-115 rounded-2xl border border-line bg-white p-6 shadow-[0_24px_48px_-16px_rgba(20,23,43,0.35)] transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] starting:scale-95 starting:opacity-0 motion-reduce:transition-none"
             >
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-[16px] font-semibold">
-                        Members{members ? ` (${members.length})` : ""}
+                    <h2 id="members-title" className="text-[20px] font-semibold tracking-[-0.015em] text-ink">
+                        Members
+                        {members && (
+                            <span className="ml-2 text-[14px] font-medium text-muted">{members.length}</span>
+                        )}
                     </h2>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="cursor-pointer border-0 bg-transparent p-0.5 text-[16px] leading-none text-[#9A9D9F]"
+                        aria-label="Close"
+                        className="grid size-8 cursor-pointer place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-600"
                     >
-                        ✕
+                        <svg width="14" height="14" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                            <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
+                        </svg>
                     </button>
                 </div>
 
-                <ul className="mb-4 max-h-64 divide-y divide-[#EEEDE7] overflow-y-auto">
-                    {isLoading && <li className="py-2 text-[13px] text-[#9A9D9F]">Loading...</li>}
+                <ul className="mb-5 max-h-72 divide-y divide-line overflow-y-auto">
+                    {isLoading && <li className="py-3 text-[13px] text-muted">Loading...</li>}
                     {members?.map((m) => {
                         const isSelf = m.user === me?.id;
                         const canRemove = m.role !== "owner" && (isOwner || isSelf);
                         return (
-                            <li key={m.id} className="flex items-center justify-between py-2 text-[13px]">
-                                <span className="font-medium">
-                                    {m.username}
-                                    {isSelf && (
-                                        <span className="ml-1 text-[11px] font-normal text-[#9A9D9F]">
-                                            (you)
-                                        </span>
-                                    )}
-                                </span>
-                                <div className="flex items-center gap-2.5">
-                                    <span className="rounded-full bg-[#F6F5F1] px-2 py-0.5 text-[11px] uppercase text-[#6B6F76]">
+                            <li key={m.id} className="flex items-center justify-between gap-3 py-2.5">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <Avatar name={m.username} size="md" />
+                                    <span className="truncate text-[14px] font-medium text-ink">
+                                        {m.username}
+                                        {isSelf && (
+                                            <span className="ml-1.5 text-[12px] font-normal text-muted">(you)</span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <span
+                                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${m.role === "owner" ? "bg-brand-50 text-brand-700" : "bg-surface text-muted"
+                                            }`}
+                                    >
                                         {m.role}
                                     </span>
                                     {canRemove && (
@@ -120,9 +145,9 @@ export function BoardMembers({
                                             type="button"
                                             onClick={() => handleRemove(m)}
                                             disabled={removeMember.isPending}
-                                            className="cursor-pointer border-0 bg-transparent p-0 text-[12px] text-[#9A9D9F] hover:text-[#C0392B] disabled:cursor-default disabled:opacity-60"
+                                            className="cursor-pointer rounded-md px-2 py-1 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            {isSelf ? "Leave" : "✕"}
+                                            {isSelf ? "Leave" : "Remove"}
                                         </button>
                                     )}
                                 </div>
@@ -132,22 +157,27 @@ export function BoardMembers({
                 </ul>
 
                 {isOwner ? (
-                    <form onSubmit={handleAdd}>
-                        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B6F76]">
-                            Add member
-                        </div>
-                        <div className="flex gap-2">
+                    <form onSubmit={handleAdd} className="border-t border-line pt-5">
+                        <label htmlFor="member-username" className="mb-1.5 block text-[13px] font-medium text-ink">
+                            Add a member
+                        </label>
+                        <div className="flex flex-wrap gap-2">
                             <input
+                                id="member-username"
                                 autoFocus
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Username"
-                                className="min-w-0 flex-1 rounded-[3px] border border-[#DEDCD4] px-2.5 py-1.5 text-[13px] outline-none focus:border-[#3D5BFF]"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                className={`${fieldCls} min-w-40 flex-1`}
                             />
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="rounded-[3px] border border-[#DEDCD4] px-2 py-1.5 text-[13px] outline-none"
+                                aria-label="Role"
+                                className={`${fieldCls} cursor-pointer`}
                             >
                                 <option value="editor">Editor</option>
                                 <option value="viewer">Viewer</option>
@@ -155,15 +185,21 @@ export function BoardMembers({
                             <button
                                 type="submit"
                                 disabled={addMember.isPending || !username.trim()}
-                                className="cursor-pointer rounded-[3px] border-0 bg-[#1C1F26] px-3 py-1.5 text-[12px] font-medium text-white disabled:cursor-default disabled:opacity-60"
+                                className="cursor-pointer rounded-lg bg-brand-600 px-5 py-3 text-[14px] font-semibold text-white transition-[transform,background-color,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-brand-700 enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Add
+                                {addMember.isPending ? "Adding…" : "Add"}
                             </button>
                         </div>
-                        {error && <p className="mt-2 text-[12px] text-[#C0392B]">{error}</p>}
+                        {error && (
+                            <p role="alert" className="mt-2 text-[12px] text-danger">
+                                {error}
+                            </p>
+                        )}
                     </form>
                 ) : (
-                    <p className="text-[12px] text-[#9A9D9F]">Only the board owner can add members.</p>
+                    <p className="border-t border-line pt-4 text-[13px] text-muted">
+                        Only the board owner can add members.
+                    </p>
                 )}
             </div>
         </div>
